@@ -323,7 +323,6 @@ _SESSION_ID="$$-$(date +%s)"
 _HF_DIR=~/.agents/skills/heurist-finance
 _HF_VERSION=$(node -e "console.log(require('${_HF_DIR}/package.json').version)" 2>/dev/null || echo "unknown")
 mkdir -p ~/.heurist/analytics
-echo '{"event":"session_start","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","version":"'"$_HF_VERSION"'","session_id":"'"$_SESSION_ID"'"}' >> ~/.heurist/analytics/sessions.jsonl 2>/dev/null || true
 _TEL=$(~/.agents/skills/heurist-finance/bin/hf-config get telemetry 2>/dev/null || echo "")
 _TEL_PROMPTED=$([ -f ~/.heurist/.telemetry-prompted ] && echo "yes" || echo "no")
 echo "TELEMETRY: ${_TEL:-off}"
@@ -332,18 +331,37 @@ echo "TEL_PROMPTED: $_TEL_PROMPTED"
 
 This runs silently. Do not show the output to the user.
 
-If `TEL_PROMPTED` is `no`: After TUI setup is handled, prompt the user about telemetry.
+If `TEL_PROMPTED` is `no`: This is the user's first session. Give them a warm welcome before anything else.
 
 Tell the user:
 
-> **Help Heurist Finance get better!** Community mode shares anonymous usage data
-> (which queries you run, how long they take, tool success rates) with a stable
-> device ID so we can track trends and fix issues. No portfolio data, no ticker
-> lists, no query text is ever sent.
-> Change anytime with `hf-config set telemetry off`.
+> Welcome to **Heurist Finance** - your AI-powered research desk.
+>
+> You have a full team of analysts at your command. Ask about any stock,
+> sector, or macro regime and get a conviction note - thesis, evidence,
+> falsifiers, and a verdict. Every query produces a position, not a summary.
+>
+> **Your desk:**
+> - `/heurist-finance NVDA` - deep-dive on any ticker
+> - `/heurist-finance how's the market` - market pulse
+> - `/heurist-finance NVDA vs AMD` - side-by-side conviction
+>
+> The terminal dashboard (`hf`) is optional but worth it - panels build
+> in real time as data arrives. Works great in a tmux split.
+>
+> Let's get you set up.
+
+Then ask about telemetry:
+
+> One quick thing before we start. Help us make Heurist Finance better?
+>
+> Community mode shares anonymous usage data (which skills you use, how long
+> queries take, tool success rates) so we can track trends and fix issues.
+> No portfolio data, no tickers, no query text - ever.
+> Change anytime: `hf-config set telemetry off`
 
 Options:
-- A) Help HF get better! (Recommended)
+- A) Sure, happy to help (Recommended)
 - B) No thanks
 
 If A: run `~/.agents/skills/heurist-finance/bin/hf-config set telemetry community`
@@ -351,23 +369,31 @@ If A: run `~/.agents/skills/heurist-finance/bin/hf-config set telemetry communit
 If B: ask a follow-up:
 
 > How about anonymous mode? We just learn that *someone* used HF - no unique ID,
-> no way to connect sessions. Just a counter that helps us know if anyone's out there.
+> no way to connect sessions. Just a counter.
 
 Options:
-- A) Sure, anonymous is fine
+- A) Anonymous is fine
 - B) No thanks, fully off
 
-If B→A: run `~/.agents/skills/heurist-finance/bin/hf-config set telemetry anonymous`
-If B→B: run `~/.agents/skills/heurist-finance/bin/hf-config set telemetry off`
+If B->A: run `~/.agents/skills/heurist-finance/bin/hf-config set telemetry anonymous`
+If B->B: run `~/.agents/skills/heurist-finance/bin/hf-config set telemetry off`
 
 Always run after consent is resolved:
 ```bash
 touch ~/.heurist/.telemetry-prompted
 ```
 
-This only happens once. If `TEL_PROMPTED` is `yes`, skip entirely.
+This only happens once. If `TEL_PROMPTED` is `yes`, skip entirely - go straight to routing.
 
-> **Note:** The TUI server also logs request analytics to `~/.heurist/analytics/requests.jsonl`. This is always local-only and not synced remotely regardless of telemetry setting. Server-side request logging is LOCAL debugging (always on); session telemetry below is SYNC-able (gated by consent).
+After consent is resolved (or skipped for returning users), log the session start:
+```bash
+_TEL_CFG=$(~/.agents/skills/heurist-finance/bin/hf-config get telemetry 2>/dev/null || echo "off")
+if [ "$_TEL_CFG" != "off" ] && [ -n "$_TEL_CFG" ]; then
+  echo '{"event":"session_start","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","version":"'"$_HF_VERSION"'","session_id":"'"$_SESSION_ID"'"}' >> ~/.heurist/analytics/sessions.jsonl 2>/dev/null || true
+fi
+```
+
+> **Note:** The TUI server logs request analytics locally to `~/.heurist/analytics/requests.jsonl` for debugging. This is never synced remotely regardless of telemetry setting.
 
 ### Session Memory Load (run silently)
 
