@@ -2,7 +2,6 @@
 # bin/hf — Heurist Finance Terminal
 set -euo pipefail
 SKILL_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && cd .. && pwd)"
-VITE_NODE="${SKILL_DIR}/node_modules/.bin/vite-node"
 APP="${SKILL_DIR}/terminal/dist/app.mjs"
 STATE_FILE="${HOME}/.heurist/tui.json"
 
@@ -31,21 +30,14 @@ if [[ ! -f "$APP" ]]; then
   exit 1
 fi
 
-# Ensure deps (needed by screenshot mode)
-if [[ ! -x "$VITE_NODE" ]]; then
-  echo "hf: dependencies missing. Run: cd ${SKILL_DIR} && npm install" >&2
-  exit 1
-fi
-
 # ── --screenshot: render a demo frame to stdout/file ────────────────────────
 if [[ "${1:-}" == "--screenshot" ]]; then
   shift
   export HF_SCREENSHOT_WIDTH="${1:-120}"
-  # Second arg (optional): output file
   if [[ -n "${2:-}" ]]; then
     export HF_SCREENSHOT_OUTPUT="${2}"
   fi
-  exec "$VITE_NODE" "${SKILL_DIR}/bin/screenshot.js"
+  exec node "${SKILL_DIR}/bin/screenshot.js"
 fi
 
 # Kill stale TUI if state file exists but process is dead
