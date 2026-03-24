@@ -96,6 +96,12 @@ export function validate(name, data) {
   // Work on a shallow copy to avoid mutating the original
   const result = { ...data };
 
+  // ── Global defaults — applied before per-schema rules ──────────
+  // Only applies when the schema does not define its own default for the field.
+  if (result.variant === undefined && !schema.defaults?.hasOwnProperty('variant')) {
+    result.variant = 'dense';
+  }
+
   // ── Run coercions ───────────────────────────────────────────────
   if (schema.coerce) {
     for (const [field, coerceFn] of Object.entries(schema.coerce)) {

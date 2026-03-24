@@ -32,4 +32,5 @@ export const schema = {
     return data;
   },
   shape: 'object with { ratings: {buy, hold, sell}, priceTarget: {current, low, median, high} }',
+  mcpTools: ['yahoo.analyst_snapshot'],
 };

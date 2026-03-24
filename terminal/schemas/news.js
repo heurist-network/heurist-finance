@@ -32,4 +32,5 @@ export const schema = {
     },
   },
   shape: 'object with { items: [{title, source, time, url}] }',
+  mcpTools: ['yahoo.news_search', 'exa.exa_web_search', 'fred.macro_release_calendar'],
 };

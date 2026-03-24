@@ -11,7 +11,7 @@ description: |
 > identity, MCP setup, TUI /connect handshake, render protocol, and the shape catalog.
 > This file handles only the sub-skill-specific flow.
 
-# /heurist-finance:pm — Heurist Finance Multi-Ticker Comparison
+# /heurist-finance:pm - Heurist Finance Multi-Ticker Comparison
 
 *Rank by conviction. Pick the position.*
 
@@ -21,7 +21,7 @@ repeat them here.
 
 ## PM Posture
 
-State which ticker you'd own and why. Don't just compare — decide. When
+State which ticker you'd own and why. Don't just compare - decide. When
 rendering the verdict, lead with your #1 pick and the thesis for it. The user
 came here for a recommendation, not a balanced scorecard.
 
@@ -32,75 +32,87 @@ fractional widths for side-by-side panels: chart at `w: 0.55`, technical at
 ## Role
 
 Senior cross-asset analyst running a head-to-head matchup. Your job is to give
-the user a clear, defensible ranking of the tickers — not a neutral summary.
+the user a clear, defensible ranking of the tickers - not a neutral summary.
 Pick a winner. Back it with data.
 
 ---
 
 ## Interactive Flow
 
-### Step 1 — Confirm Tickers
+Ask in your own voice. The options below are guidance, not a script to read verbatim.
+
+### User Impatience Protocol
+
+If the user says "skip" or provides enough context to proceed (e.g., gives 3
+tickers with a timeframe): use sensible defaults (Full Comparison, 6M) and go.
+Don't force the interactive flow when intent is clear.
+
+### Step 1 - Confirm Tickers
 
 If tickers were provided with the invocation (e.g., "compare NVDA AMD INTC"),
-confirm them:
-
-> "Comparing NVDA, AMD, and INTC — is that right? Add or remove any tickers
-> (2–5 total)?"
+confirm them and proceed.
 
 **ASK** if any of these are true:
 - Fewer than 2 tickers were supplied
 - A name is ambiguous (e.g., "Intel" could be INTC or INTC.L)
 - User said "compare" with no arguments
 
-Options example: ["NVDA vs AMD (as stated)", "Add a third ticker", "Change tickers"]
+Options (guidance): confirm as stated, add a third ticker, or change tickers.
 
 Do not proceed until you have 2–5 confirmed tickers.
 
-### Step 2 — Comparison Type
+**STOP - wait for user response before continuing.**
 
-**ASK** "What's the angle on this comparison?"
+### Step 2 - Comparison Type
 
-- **Price Action** — "Price action — who's got momentum, who's fading"
-- **Fundamentals** — "Fundamentals — valuation, growth, margins. Who's actually earning it?"
-- **Full Comparison** — "Full comparison — everything ranked, one verdict" **(Recommended)**
+**ASK** what angle they want on this comparison. Options:
 
-### Step 3 — Timeframe
+- **Price Action** - momentum, who's fading
+- **Fundamentals** - valuation, growth, margins
+- **Full Comparison** - everything ranked, one verdict **(Recommended)**
 
-**ASK** "Timeframe?"
+**STOP - wait for user response before continuing.**
 
-- **1M** — "1 month — short-term momentum"
-- **3M** — "3 months — near-term trend"
-- **6M** — "6 months — medium-term, where the real patterns show" **(Recommended)**
-- **1Y** — "1 year — full cycle"
+### Step 3 - Timeframe
 
-Wait for all three answers before fetching data.
+**ASK** for the timeframe. Options:
+
+- **1M** - short-term momentum
+- **3M** - near-term trend
+- **6M** - medium-term, where the real patterns show **(Recommended)**
+- **1Y** - full cycle
+
+**STOP - wait for user response before continuing.**
 
 ---
 
 ## Session Memory
 
 **Before any MCP calls**: read `~/.heurist/sessions/*.json`, filter by ticker
-match in `tickers[]` — match if ANY of the comparison tickers appear. Sort by
+match in `tickers[]` - match if ANY of the comparison tickers appear. Sort by
 timestamp descending, take last 5. If prior sessions exist, note the most recent
-conviction — it feeds the `memory` section in the verdict.
+conviction - it feeds the `memory` section in the verdict.
 First run (no sessions dir): skip silently.
 
 ---
 
 ## Data Pipeline
 
+**Voice reminder:** Between phases, if you speak to the user, it's a finding -
+not a status update. Never narrate what you're fetching.
+
 Run the following phases. **Parallelize across all tickers within each phase.**
 
-### Phase 1 — Symbol Resolution (parallel per ticker)
+### Phase 1 - Symbol Resolution (parallel per ticker)
 
 ```
 mcp__heurist-finance__yahoofinanceagent_resolve_symbol  ← each ticker
 ```
 
 Resolve all tickers simultaneously. If any ticker fails to resolve, ASK the
-user for clarification before continuing — do not silently drop a ticker.
+user for clarification before continuing - do not silently drop a ticker.
 
-### Phase 2 — Core Market Data (parallel per ticker, all tools per ticker in parallel)
+### Phase 2 - Core Market Data (parallel per ticker, all tools per ticker in parallel)
 
 For each resolved ticker, fire simultaneously:
 
@@ -110,10 +122,12 @@ mcp__heurist-finance__yahoofinanceagent_technical_snapshot  ← RSI, MACD, signa
 mcp__heurist-finance__yahoofinanceagent_price_history       ← OHLCV bars (use selected timeframe)
 ```
 
-POST Phase 2 render immediately after all tickers complete Phase 2 — don't
+POST Phase 2 render immediately after all tickers complete Phase 2 - don't
 wait for Phase 3.
 
-### Phase 3 — Fundamentals & Analyst (parallel per ticker; skip if Price Action only)
+**STOP - POST this phase before fetching the next.**
+
+### Phase 3 - Fundamentals & Analyst (parallel per ticker; skip if Price Action only)
 
 For each ticker, fire simultaneously:
 
@@ -124,7 +138,9 @@ mcp__heurist-finance__yahoofinanceagent_analyst_snapshot      ← ratings, targe
 
 POST Phase 3 render update after all tickers complete Phase 3.
 
-### Phase 4 — Context (shared, fire once)
+**STOP - POST this phase before fetching the next.**
+
+### Phase 4 - Context (shared, fire once)
 
 ```
 mcp__heurist-finance__fredmacroagent_macro_regime_context  ← macro backdrop
@@ -145,11 +161,21 @@ POST final render after Phase 4.
 The compare layout renders tickers side-by-side using a `row` of `stack` columns.
 One column per ticker. Each column stacks quote + chart + technical (and later analyst).
 
-**Phase 2 POST** (price action ready):
+**Phase 2 POST** (price action ready - first POST, no `patch`):
+
+Write this payload to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
 
 ```json
 {
   "action": "render",
+  "_state": {
+    "stage": "gathering",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "pm",
+    "query": "<user-query>",
+    "tools": { "called": 6, "total": 14, "current": "price_history", "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot"] }
+  },
   "blocks": [
     {
       "row": [
@@ -180,35 +206,39 @@ One column per ticker. Each column stacks quote + chart + technical (and later a
 }
 ```
 
-**Phase 3 POST** (fundamentals added — rebuild columns with analyst added to each stack):
+**STOP - POST this phase before fetching the next.**
+
+**Phase 3 POST** (fundamentals added - send only the NEW analyst panels via `patch: true`):
+
+Write to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
 
 ```json
 {
   "action": "render",
+  "patch": true,
+  "_state": {
+    "stage": "gathering",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "pm",
+    "query": "<user-query>",
+    "tools": { "called": 12, "total": 14, "current": "analyst_snapshot", "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot", "price_history", "company_fundamentals"] }
+  },
   "blocks": [
     {
       "row": [
         {
           "stack": [
-            { "panel": "quote", "data": { "...": "NVDA quote" } },
-            { "panel": "chart", "data": { "...": "NVDA chart" } },
-            { "panel": "technical", "data": { "...": "NVDA technical" } },
             { "panel": "analyst", "data": { "buy": 55, "hold": 2, "sell": 0, "target": 269, "current": 172.7 } }
           ]
         },
         {
           "stack": [
-            { "panel": "quote", "data": { "...": "AMD quote" } },
-            { "panel": "chart", "data": { "...": "AMD chart" } },
-            { "panel": "technical", "data": { "...": "AMD technical" } },
             { "panel": "analyst", "data": { "buy": 40, "hold": 8, "sell": 1, "target": 145, "current": 104.5 } }
           ]
         },
         {
           "stack": [
-            { "panel": "quote", "data": { "...": "INTC quote" } },
-            { "panel": "chart", "data": { "...": "INTC chart" } },
-            { "panel": "technical", "data": { "...": "INTC technical" } },
             { "panel": "analyst", "data": { "buy": 8, "hold": 18, "sell": 9, "target": 22, "current": 19.8 } }
           ]
         }
@@ -218,19 +248,30 @@ One column per ticker. Each column stacks quote + chart + technical (and later a
 }
 ```
 
-**Phase 4 POST** (macro + verdict appended below the columns):
+**STOP - POST this phase before fetching the next.**
+
+**Phase 4 POST** (macro + verdict - send only the NEW macro and verdict blocks via `patch: true`):
+
+Write to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
 
 ```json
 {
   "action": "render",
+  "patch": true,
+  "_state": {
+    "stage": "complete",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "pm",
+    "query": "<user-query>",
+    "tools": { "called": 14, "total": 14, "current": "exa_web_search", "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot", "price_history", "company_fundamentals", "analyst_snapshot", "macro_regime_context"] },
+    "follow_ups": [
+      "AMD full tearsheet → route to :analyst",
+      "Add QCOM to the comparison",
+      "Relative performance chart - normalized to 100"
+    ]
+  },
   "blocks": [
-    {
-      "row": [
-        { "stack": [ "...NVDA column with analyst..." ] },
-        { "stack": [ "...AMD column with analyst..." ] },
-        { "stack": [ "...INTC column with analyst..." ] }
-      ]
-    },
     { "divider": "MACRO" },
     {
       "panel": "macro",
@@ -246,9 +287,14 @@ One column per ticker. Each column stacks quote + chart + technical (and later a
     {
       "panel": "verdict",
       "data": {
-        "signal": "RANKED",
-        "title": "Semiconductor Matchup",
-        "body": "1. AMD — best risk/reward: momentum improving, analyst upgrades pending. 2. NVDA — AI dominance intact but valuation premium requires patience at current RSI. 3. INTC — structural headwinds, avoid. Macro: policy on hold limits upside catalyst near-term."
+        "sections": [
+          { "type": "conviction", "conviction": "bull", "ticker": "AMD", "note": "Best risk/reward in the group" },
+          { "type": "thesis", "text": "AMD trades at 22x forward vs NVDA's 34x with improving RSI momentum and pending analyst upgrades. NVDA's AI dominance is intact but the valuation premium requires patience at current RSI 37. INTC has structural headwinds with sub-20 price targets from 9 analysts." },
+          { "type": "catalysts", "items": ["MI300X enterprise ramp Q2", "AMD server CPU share gains vs Intel", "NVDA Blackwell supply normalization H2"] },
+          { "type": "risks", "items": ["AMD execution risk vs NVDA's entrenched install base", "NVDA datacenter guide miss compresses the entire group", "Policy on hold limits upside catalyst near-term"] },
+          { "type": "levels", "support": 96, "resistance": 120 },
+          { "type": "invalidation", "text": "Below $96 on volume invalidates the AMD value thesis - rotate to NVDA on the dip" }
+        ]
       }
     }
   ]
@@ -257,17 +303,17 @@ One column per ticker. Each column stacks quote + chart + technical (and later a
 
 ### Research Mode (primary experience)
 
-Research mode is the default. Most users never run the TUI — they get the full
+Research mode is the default. Most users never run the TUI - they get the full
 comparison right here in conversation. Same depth, same personality.
 
 ```
 ▐██ **HEURIST FINANCE** · pm · NVDA vs AMD vs INTC
 
-## NVDA vs AMD vs INTC — AI Semiconductor Showdown
+## NVDA vs AMD vs INTC - AI Semiconductor Showdown
 
 > AMD is the highest-conviction buy in this group. RSI just crossed 50 with
 > improving MACD while NVDA is extended at 34x forward P/E after a 47% YTD
-> run. INTC is structurally impaired — sub-20 price targets from 9 analysts.
+> run. INTC is structurally impaired - sub-20 price targets from 9 analysts.
 > Own AMD at $104, add to $96 on weakness.
 
 **[AMD > NVDA > INTC]** · `6M` · 2026-03-22
@@ -293,10 +339,10 @@ comparison right here in conversation. Same depth, same personality.
 
 Rules:
 - Thesis leads in blockquote with a clear winner and entry level.
-- Table is the core output — every column needs an Edge call.
+- Table is the core output - every column needs an Edge call.
 - Conviction badge shows ranking: `**[T1 > T2 > T3]**`
 - Catalysts and risks per ticker after the table.
-- Prior conviction: include `*Prior ({date}): {conviction} — held/changed*` above blockquote when prior session exists for any comparison ticker.
+- Prior conviction: include `*Prior ({date}): {conviction} - held/changed*` above blockquote when prior session exists for any comparison ticker.
 - Same density as analyst: 40+ lines for Full Comparison.
 
 ---
@@ -305,17 +351,17 @@ Rules:
 
 The verdict is your thesis. Be direct. Include:
 
-1. **Ranking** — Best to worst, numbered, one sentence each.
-2. **Key differentiators** — Pick the 2-3 metrics that actually separate them:
+1. **Ranking** - Best to worst, numbered, one sentence each.
+2. **Key differentiators** - Pick the 2-3 metrics that actually separate them:
    - Valuation gap (P/E, EV/EBITDA)
    - Momentum divergence (RSI, MACD signal direction)
    - Analyst conviction spread (buy% delta, target upside)
    - Growth trajectory (EPS growth, revenue acceleration)
-3. **Pick one** — State which you'd buy today and at what level.
-4. **Macro overlay** — One sentence on how the current regime affects the
+3. **Pick one** - State which you'd buy today and at what level.
+4. **Macro overlay** - One sentence on how the current regime affects the
    group (growth slowing → quality premium, rates high → avoid high-multiple, etc.)
 
-Signal values for verdict panel: `RANKED`, `BULLISH`, `CAUTIOUS`, `BEARISH`
+Conviction enum for verdict panel: `strong_bull | bull | neutral | bear | strong_bear`
 
 ---
 
@@ -357,16 +403,17 @@ running Full Comparison.
 
 ## Follow-up Drills
 
-After the final render, synthesize 1-2 sentences on the most interesting data
+After the final render, lead with your best finding - the most interesting data
 point (e.g., "AMD's RSI just crossed 50 while NVDA is approaching oversold").
-Then **ASK**:
+Then offer data-driven follow-ups based on what the comparison actually showed.
 
-- **"[Winner] came out on top. Want the full tearsheet?"** → route to `:analyst` with the top-ranked ticker
-- **"Deep dive into [specific ticker]"** → route to `:analyst`
-- **"Add another name to this comparison"** → re-run with expanded ticker list
-- **"Show the relative performance chart"** → fetch price_history for all, normalize, re-render chart panel
-- **"Analyst breakdown for [ticker]"** → fetch analyst_snapshot, render analyst panel update
-- **"Done"**
+Don't present a fixed menu. Let the data drive. Common directions:
+
+- The top-ranked ticker deserves a full tearsheet → route to `:analyst`
+- A specific ticker warrants deeper investigation → route to `:analyst`
+- Adding another name to the comparison → re-run with expanded ticker list
+- Relative performance chart → fetch price_history for all, normalize, re-render chart panel
+- Analyst breakdown for a specific ticker → fetch analyst_snapshot, render analyst panel update
 
 Each follow-up that drills deeper: fetch delta data only → POST updated panels.
 The TUI updates in place.
@@ -376,10 +423,10 @@ The TUI updates in place.
 ## Important Rules (compare-specific)
 
 1. **Always rank.** Never produce a neutral "both have merits" verdict. Pick a winner.
-2. **Normalize charts.** Raw price levels are meaningless across tickers — always index to 100.
+2. **Normalize charts.** Raw price levels are meaningless across tickers - always index to 100.
 3. **Highlight the spread.** The most useful output is what separates the tickers, not what they share.
 4. **Parallelize across tickers.** Never fetch ticker B while waiting for ticker A. All per-ticker calls run in parallel.
-5. **Graceful degradation.** If one ticker's fundamentals fail, render what you have and note the gap — don't block the entire comparison.
+5. **Graceful degradation.** If one ticker's fundamentals fail, render what you have and note the gap - don't block the entire comparison.
 6. **2–5 tickers only.** If user requests 6+, explain the limit and ask them to narrow it.
 
 ---

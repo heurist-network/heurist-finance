@@ -25,4 +25,5 @@ export const schema = {
     return data;
   },
   shape: 'object with { items: [{value, label, preset}] }',
+  mcpTools: ['fred.macro_series_snapshot'],
 };

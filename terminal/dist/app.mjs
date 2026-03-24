@@ -9,13 +9,13 @@ var __export = (target, all) => {
 };
 
 // terminal/debugLog.js
-import fs2 from "fs";
-import path3 from "path";
-import os3 from "os";
+import fs from "fs";
+import path from "path";
+import os from "os";
 function isDebugEnabled() {
   if (_enabled !== null) return _enabled;
   try {
-    const text = fs2.readFileSync(CONFIG_FILE, "utf8");
+    const text = fs.readFileSync(CONFIG_FILE, "utf8");
     _enabled = /^\s*debug_log\s*:\s*true\s*$/m.test(text);
   } catch {
     _enabled = false;
@@ -24,16 +24,16 @@ function isDebugEnabled() {
 }
 function writeLog(message) {
   try {
-    fs2.mkdirSync(CONFIG_DIR, { recursive: true });
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
     try {
-      const stat = fs2.statSync(LOG_FILE);
+      const stat = fs.statSync(LOG_FILE);
       if (stat.size > MAX_LOG_BYTES) {
-        fs2.writeFileSync(LOG_FILE, "", { flag: "w" });
+        fs.writeFileSync(LOG_FILE, "", { flag: "w" });
       }
     } catch {
     }
     const ts = (/* @__PURE__ */ new Date()).toISOString();
-    fs2.appendFileSync(LOG_FILE, `[${ts}] ${message}
+    fs.appendFileSync(LOG_FILE, `[${ts}] ${message}
 `);
   } catch {
   }
@@ -52,12 +52,32 @@ function logSchemaWarnings(panel, warnings) {
     writeLog(`[schema:warn] ${panel}: ${w}`);
   }
 }
+function logConnection(agent, model) {
+  if (!isDebugEnabled()) return;
+  writeLog(`[session:connect] agent=${agent} model=${model}`);
+}
+function logDisconnect(agent) {
+  if (!isDebugEnabled()) return;
+  writeLog(`[session:disconnect] agent=${agent}`);
+}
+function logRender(skill, blocksCount, patch, stage) {
+  if (!isDebugEnabled()) return;
+  writeLog(`[render] skill=${skill} blocks=${blocksCount} patch=${patch} stage=${stage}`);
+}
+function logRenderError(status, message) {
+  if (!isDebugEnabled()) return;
+  writeLog(`[render:error] status=${status} ${message}`);
+}
+function logStateTransition(from, to, skill) {
+  if (!isDebugEnabled()) return;
+  writeLog(`[state] ${from} \u2192 ${to} (${skill})`);
+}
 var CONFIG_DIR, CONFIG_FILE, LOG_FILE, MAX_LOG_BYTES, _enabled;
 var init_debugLog = __esm({
   "terminal/debugLog.js"() {
-    CONFIG_DIR = path3.join(os3.homedir(), ".heurist");
-    CONFIG_FILE = path3.join(CONFIG_DIR, "config.yaml");
-    LOG_FILE = path3.join(CONFIG_DIR, "debug.log");
+    CONFIG_DIR = path.join(os.homedir(), ".heurist");
+    CONFIG_FILE = path.join(CONFIG_DIR, "config.yaml");
+    LOG_FILE = path.join(CONFIG_DIR, "debug.log");
     MAX_LOG_BYTES = 1048576;
     _enabled = null;
   }
@@ -82,7 +102,8 @@ var init_quote = __esm({
           if (!data.ticker) data.ticker = val;
         }
       },
-      shape: "object with { ticker }"
+      shape: "object with { ticker }",
+      mcpTools: ["yahoo.quote_snapshot"]
     };
   }
 });
@@ -113,7 +134,8 @@ var init_chart = __esm({
         if (!Array.isArray(data.values) || data.values.length === 0) return null;
         return data;
       },
-      shape: "object with { values: number[] }"
+      shape: "object with { values: number[] }",
+      mcpTools: ["yahoo.price_history", "fred.macro_series_history", "fred.macro_vintage_history", "sec.xbrl_fact_trends"]
     };
   }
 });
@@ -160,7 +182,8 @@ var init_technical = __esm({
           }
         }
       },
-      shape: "object with optional { rsi, macd, trend, signals, gauges }"
+      shape: "object with optional { rsi, macd, trend, signals, gauges }",
+      mcpTools: ["yahoo.technical_snapshot"]
     };
   }
 });
@@ -189,7 +212,8 @@ var init_rsi = __esm({
           else if (!Array.isArray(val)) data.signals = [];
         }
       },
-      shape: "object with { value: number }"
+      shape: "object with { value: number }",
+      mcpTools: ["yahoo.technical_snapshot"]
     };
   }
 });
@@ -222,7 +246,8 @@ var init_analyst = __esm({
         }
         return data;
       },
-      shape: "object with { ratings: {buy, hold, sell}, priceTarget: {current, low, median, high} }"
+      shape: "object with { ratings: {buy, hold, sell}, priceTarget: {current, low, median, high} }",
+      mcpTools: ["yahoo.analyst_snapshot"]
     };
   }
 });
@@ -290,7 +315,8 @@ var init_macro = __esm({
         if (!Array.isArray(data.pillars) || data.pillars.length === 0) return null;
         return data;
       },
-      shape: "object with { pillars: [{label, value, direction}] }"
+      shape: "object with { pillars: [{label, value, direction}] }",
+      mcpTools: ["fred.macro_regime_context", "yahoo.market_overview"]
     };
   }
 });
@@ -327,7 +353,8 @@ var init_news = __esm({
           if (typeof data.limit === "number" && data.limit > 50) data.limit = 50;
         }
       },
-      shape: "object with { items: [{title, source, time, url}] }"
+      shape: "object with { items: [{title, source, time, url}] }",
+      mcpTools: ["yahoo.news_search", "exa.exa_web_search", "fred.macro_release_calendar"]
     };
   }
 });
@@ -419,6 +446,7 @@ var init_verdict = __esm({
         data.sections = sections;
       },
       shape: "object with { thesis, conviction, catalysts, risks, levels, timeframe }",
+      mcpTools: [],
       // ── Warn gates (v1.1) ──────────────────────────────────────────────────
       // Fields that SHOULD be present for a complete analysis.
       // Missing → inline ⚠ warning. Never hard-block render.
@@ -461,7 +489,8 @@ var init_gauge = __esm({
           }
         }
       },
-      shape: "object with { value: number }"
+      shape: "object with { value: number }",
+      mcpTools: ["fred.macro_series_snapshot"]
     };
   }
 });
@@ -491,7 +520,8 @@ var init_gauges = __esm({
         if (!Array.isArray(data.items) || data.items.length === 0) return null;
         return data;
       },
-      shape: "object with { items: [{value, label, preset}] }"
+      shape: "object with { items: [{value, label, preset}] }",
+      mcpTools: ["fred.macro_series_snapshot"]
     };
   }
 });
@@ -505,11 +535,23 @@ var init_correlationMatrix = __esm({
       coerce: {
         tickers: (val, data) => {
           if (typeof val === "string") data.tickers = val.split(",").map((s) => s.trim());
+        },
+        // Coerce matrix: ensure it's an array of arrays with numeric values
+        matrix: (val, data) => {
+          if (!Array.isArray(val)) {
+            data.matrix = [];
+            return;
+          }
+          data.matrix = val.map((row) => {
+            if (!Array.isArray(row)) return [];
+            return row.map((v) => typeof v === "string" ? Number(v) : v);
+          });
         }
       },
       defaults: {
         title: "CORRELATION MATRIX"
-      }
+      },
+      mcpTools: []
     };
   }
 });
@@ -522,7 +564,17 @@ var init_treeMap = __esm({
       required: ["items"],
       coerce: {
         items: (val, data) => {
-          if (!Array.isArray(val)) data.items = [];
+          if (!Array.isArray(val)) {
+            data.items = [];
+            return;
+          }
+          data.items = val.map((item) => {
+            if (typeof item !== "object" || item === null) return item;
+            const out = { ...item };
+            if (typeof out.weight === "string") out.weight = Number(out.weight);
+            if (typeof out.value === "string") out.value = Number(out.value);
+            return out;
+          });
         },
         height: (val, data) => {
           data.height = Number(val) || 10;
@@ -530,7 +582,8 @@ var init_treeMap = __esm({
       },
       defaults: {
         height: 10
-      }
+      },
+      mcpTools: ["yahoo.fund_snapshot", "yahoo.equity_screen"]
     };
   }
 });
@@ -543,15 +596,34 @@ var init_flowSankey = __esm({
       required: ["nodes"],
       coerce: {
         nodes: (val, data) => {
-          if (!Array.isArray(val)) data.nodes = [];
+          if (!Array.isArray(val)) {
+            data.nodes = [];
+            return;
+          }
+          data.nodes = val.map((node) => {
+            if (typeof node !== "object" || node === null) return node;
+            const out = { ...node };
+            if (typeof out.value === "string") out.value = Number(out.value);
+            return out;
+          });
         },
         flows: (val, data) => {
-          if (!Array.isArray(val)) data.flows = [];
+          if (!Array.isArray(val)) {
+            data.flows = [];
+            return;
+          }
+          data.flows = val.map((flow) => {
+            if (typeof flow !== "object" || flow === null) return flow;
+            const out = { ...flow };
+            if (typeof out.value === "string") out.value = Number(out.value);
+            return out;
+          });
         }
       },
       defaults: {
         flows: []
-      }
+      },
+      mcpTools: []
     };
   }
 });
@@ -588,7 +660,8 @@ var init_insiders = __esm({
         if (warnings.length > 0) return { data, warnings };
         return data;
       },
-      shape: "object with { transactions: [{date, name, type, shares, amount}] }"
+      shape: "object with { transactions: [{date, name, type, shares, amount}] }",
+      mcpTools: ["sec.insider_activity"]
     };
   }
 });
@@ -621,7 +694,8 @@ var init_earnings = __esm({
         if (warnings.length > 0) return { data, warnings };
         return data;
       },
-      shape: "object with { quarters: [{date, actual, estimate, surprise}] }"
+      shape: "object with { quarters: [{date, actual, estimate, surprise}] }",
+      mcpTools: ["yahoo.company_fundamentals"]
     };
   }
 });
@@ -652,7 +726,8 @@ var init_holders = __esm({
         if (warnings.length > 0) return { data, warnings };
         return data;
       },
-      shape: "object with { holders: [{name, shares, percent}] }"
+      shape: "object with { holders: [{name, shares, percent}] }",
+      mcpTools: ["sec.institutional_holders", "yahoo.fund_snapshot"]
     };
   }
 });
@@ -683,7 +758,8 @@ var init_filings = __esm({
         if (warnings.length > 0) return { data, warnings };
         return data;
       },
-      shape: "object with { filings: [{date, form, description}] }"
+      shape: "object with { filings: [{date, form, description}] }",
+      mcpTools: ["sec.filing_timeline"]
     };
   }
 });
@@ -728,7 +804,8 @@ var init_heatmap = __esm({
         if (warnings.length > 0) return { data, warnings };
         return data;
       },
-      shape: "object with { rows: [{label, values}], columns: string[] }"
+      shape: "object with { rows: [{label, values}], columns: string[] }",
+      mcpTools: []
     };
   }
 });
@@ -762,7 +839,8 @@ var init_candlestick = __esm({
         if (warnings.length > 0) return { data, warnings };
         return data;
       },
-      shape: "object with { bars: [{open, high, low, close, volume}] }"
+      shape: "object with { bars: [{open, high, low, close, volume}] }",
+      mcpTools: ["yahoo.price_history"]
     };
   }
 });
@@ -793,7 +871,8 @@ var init_waterfall = __esm({
         if (warnings.length > 0) return { data, warnings };
         return data;
       },
-      shape: "object with { items: [{label, value, previous?}] }"
+      shape: "object with { items: [{label, value, previous?}] }",
+      mcpTools: ["sec.xbrl_fact_trends"]
     };
   }
 });
@@ -820,6 +899,9 @@ function validate(name, data) {
     return data;
   }
   const result = { ...data };
+  if (result.variant === void 0 && !schema21.defaults?.hasOwnProperty("variant")) {
+    result.variant = "dense";
+  }
   if (schema21.coerce) {
     for (const [field, coerceFn] of Object.entries(schema21.coerce)) {
       if (field in result) {
@@ -946,16 +1028,20 @@ import path6 from "path";
 import readline from "readline";
 
 // terminal/server.js
+init_debugLog();
 import http from "http";
 import net from "net";
-import fs from "fs";
-import path from "path";
-import os from "os";
+import fs2 from "fs";
+import path2 from "path";
+import os2 from "os";
 import { EventEmitter } from "events";
 import { createRequire } from "module";
 var DEFAULT_PORT = 7707;
-var STATE_DIR = path.join(os.homedir(), ".heurist");
-var STATE_FILE = path.join(STATE_DIR, "tui.json");
+var STATE_DIR = path2.join(os2.homedir(), ".heurist");
+var STATE_FILE = path2.join(STATE_DIR, "tui.json");
+var ANALYTICS_DIR = path2.join(STATE_DIR, "analytics");
+var ANALYTICS_FILE = path2.join(ANALYTICS_DIR, "requests.jsonl");
+var ANALYTICS_MAX_BYTES = 5 * 1024 * 1024;
 var VALID_ACTIONS = /* @__PURE__ */ new Set(["render", "focus", "layout", "clear"]);
 var _require = createRequire(import.meta.url);
 function _resolveVersion() {
@@ -967,6 +1053,30 @@ function _resolveVersion() {
   }
 }
 var VERSION = _resolveVersion();
+var analytics = {
+  renders: 0,
+  patches: 0,
+  errors: 0,
+  totalBlocks: 0,
+  firstRenderAt: null,
+  lastRenderAt: null,
+  skills: {}
+  // { analyst: 3, desk: 1 }
+};
+function logAnalytics(entry) {
+  try {
+    fs2.mkdirSync(ANALYTICS_DIR, { recursive: true });
+    try {
+      const stat = fs2.statSync(ANALYTICS_FILE);
+      if (stat.size > ANALYTICS_MAX_BYTES) {
+        fs2.renameSync(ANALYTICS_FILE, ANALYTICS_FILE + ".bak");
+      }
+    } catch {
+    }
+    fs2.appendFileSync(ANALYTICS_FILE, JSON.stringify(entry) + "\n");
+  } catch {
+  }
+}
 var _agentSession = null;
 var VALID_THEMES = /* @__PURE__ */ new Set([
   "terminal-cyan",
@@ -1008,14 +1118,14 @@ async function findPort() {
   throw new Error("Could not find an available port after 5 attempts");
 }
 function writeStateFile(data) {
-  fs.mkdirSync(STATE_DIR, { recursive: true });
+  fs2.mkdirSync(STATE_DIR, { recursive: true });
   const tmp = STATE_FILE + ".tmp";
-  fs.writeFileSync(tmp, JSON.stringify(data, null, 2), { mode: 384 });
-  fs.renameSync(tmp, STATE_FILE);
+  fs2.writeFileSync(tmp, JSON.stringify(data, null, 2), { mode: 384 });
+  fs2.renameSync(tmp, STATE_FILE);
 }
 function deleteStateFile() {
   try {
-    fs.unlinkSync(STATE_FILE);
+    fs2.unlinkSync(STATE_FILE);
   } catch {
   }
 }
@@ -1056,6 +1166,62 @@ function readBody(req) {
   });
 }
 function handleRequest(req, res) {
+  const _reqStart = Date.now();
+  res.on("finish", () => {
+    try {
+      const duration_ms = Date.now() - _reqStart;
+      const status = res.statusCode;
+      const { method: method2, url: path7 } = req;
+      if (path7 === "/render") {
+        const pending = req._pendingRenderLog || {};
+        logAnalytics({
+          ts: (/* @__PURE__ */ new Date()).toISOString(),
+          method: method2,
+          path: path7,
+          status,
+          duration_ms,
+          ...pending,
+          error: pending.error ?? null
+        });
+        if (status === 200) {
+          const now = (/* @__PURE__ */ new Date()).toISOString();
+          analytics.renders++;
+          if (pending.patch) analytics.patches++;
+          if (pending.blocks_count) analytics.totalBlocks += pending.blocks_count;
+          if (!analytics.firstRenderAt) analytics.firstRenderAt = now;
+          analytics.lastRenderAt = now;
+          if (pending.skill) {
+            if (analytics.skills[pending.skill] !== void 0 || Object.keys(analytics.skills).length < 50) {
+              analytics.skills[pending.skill] = (analytics.skills[pending.skill] || 0) + 1;
+            }
+          }
+          logRender(
+            pending.skill ?? "unknown",
+            pending.blocks_count ?? 0,
+            pending.patch ?? false,
+            pending.stage ?? "unknown"
+          );
+        } else {
+          analytics.errors++;
+          logRenderError(status, pending.error ?? "");
+        }
+      } else {
+        const entry = {
+          ts: (/* @__PURE__ */ new Date()).toISOString(),
+          method: method2,
+          path: path7,
+          status,
+          duration_ms
+        };
+        if (status >= 400) {
+          entry.error = req._responseError || null;
+        }
+        logAnalytics(entry);
+        if (status >= 400) analytics.errors++;
+      }
+    } catch {
+    }
+  });
   setCorsHeaders(res);
   if (req.method === "OPTIONS") {
     res.writeHead(204);
@@ -1105,6 +1271,7 @@ function handleRequest(req, res) {
         query: payload?.query || null,
         connectedAt: Date.now()
       };
+      logConnection(agentId, modelId);
       const label = modelId ? `${agentId} \xB7 ${modelId}` : agentId;
       emitter.emit("_splash", {
         msg: `Connected \xB7 ${label}`,
@@ -1141,6 +1308,7 @@ function handleRequest(req, res) {
         res.end(JSON.stringify({ error: "Agent ID mismatch" }));
         return;
       }
+      logDisconnect(agentId);
       _agentSession = null;
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ status: "disconnected" }));
@@ -1157,6 +1325,7 @@ function handleRequest(req, res) {
   }
   if (method === "POST" && url === "/render") {
     if (!_agentSession) {
+      req._pendingRenderLog = { error: "No agent connected" };
       res.writeHead(403, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "No agent connected. POST /connect first." }));
       return;
@@ -1164,12 +1333,14 @@ function handleRequest(req, res) {
     readBody(req).then((payload) => {
       const callerId = payload?.agent;
       if (callerId && callerId !== _agentSession.agent) {
+        req._pendingRenderLog = { error: "Agent ID mismatch" };
         res.writeHead(403, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Agent ID mismatch", connected: _agentSession.agent }));
         return;
       }
       const action = payload?.action;
       if (!VALID_ACTIONS.has(action)) {
+        req._pendingRenderLog = { agent: callerId, error: `Invalid action "${action}"` };
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(JSON.stringify({
           error: `Invalid action "${action}". Must be one of: ${[...VALID_ACTIONS].join(", ")}`
@@ -1178,6 +1349,7 @@ function handleRequest(req, res) {
       }
       if (action === "render") {
         if (payload.blocks !== void 0) {
+          req._pendingRenderLog = { agent: callerId, error: "Inline blocks not accepted" };
           res.writeHead(400, { "Content-Type": "application/json" });
           res.end(JSON.stringify({
             error: 'Inline blocks not accepted. Write blocks to a file and POST {"action":"render","file":"/path/to/file.json"}'
@@ -1185,14 +1357,16 @@ function handleRequest(req, res) {
           return;
         }
         if (!payload.file) {
+          req._pendingRenderLog = { agent: callerId, error: 'Missing "file" field' };
           res.writeHead(400, { "Content-Type": "application/json" });
           res.end(JSON.stringify({
             error: 'Missing "file" field. Write blocks to a file and POST {"action":"render","file":"/path/to/file.json"}'
           }));
           return;
         }
-        const filePath = payload.file;
+        const filePath = path2.resolve(payload.file);
         if (!filePath.startsWith("/tmp/")) {
+          req._pendingRenderLog = { agent: callerId, error: "File path must be under /tmp/" };
           res.writeHead(400, { "Content-Type": "application/json" });
           res.end(JSON.stringify({
             error: "File path must be under /tmp/. Got: " + filePath
@@ -1201,18 +1375,21 @@ function handleRequest(req, res) {
         }
         let fileContents;
         try {
-          const stat = fs.statSync(filePath);
+          const stat = fs2.statSync(filePath);
           if (stat.size > MAX_BODY_BYTES) {
+            req._pendingRenderLog = { agent: callerId, error: "File too large" };
             res.writeHead(413, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ error: "File too large", maxBytes: MAX_BODY_BYTES }));
             return;
           }
-          fileContents = fs.readFileSync(filePath, "utf8");
+          fileContents = fs2.readFileSync(filePath, "utf8");
         } catch (readErr) {
           if (readErr.code === "ENOENT") {
+            req._pendingRenderLog = { agent: callerId, error: `File not found: ${filePath}` };
             res.writeHead(404, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ error: `File not found: ${filePath}` }));
           } else {
+            req._pendingRenderLog = { agent: callerId, error: `Could not read file: ${readErr.message}` };
             res.writeHead(500, { "Content-Type": "application/json" });
             res.end(JSON.stringify({ error: `Could not read file: ${readErr.message}` }));
           }
@@ -1222,6 +1399,7 @@ function handleRequest(req, res) {
         try {
           filePayload = JSON.parse(fileContents);
         } catch {
+          req._pendingRenderLog = { agent: callerId, error: `Invalid JSON in file: ${filePath}` };
           res.writeHead(400, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: `Invalid JSON in file: ${filePath}` }));
           return;
@@ -1235,6 +1413,7 @@ function handleRequest(req, res) {
         if (filePayload.panels !== void 0) payload.panels = filePayload.panels;
       }
       if (payload.theme !== void 0 && !VALID_THEMES.has(payload.theme)) {
+        req._pendingRenderLog = { agent: payload.agent, error: `Unknown theme "${payload.theme}"` };
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(JSON.stringify({
           error: `Unknown theme "${payload.theme}". Valid: ${[...VALID_THEMES].join(", ")}`
@@ -1247,23 +1426,45 @@ function handleRequest(req, res) {
       try {
         emitter.emit(action, payload);
       } catch (emitErr) {
+        req._pendingRenderLog = {
+          agent: payload.agent,
+          skill: payload._state?.skill,
+          action,
+          error: `Render error: ${emitErr.message}`
+        };
         res.writeHead(500, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: `Render error: ${emitErr.message}` }));
         return;
+      }
+      if (action === "render") {
+        req._pendingRenderLog = {
+          skill: payload._state?.skill ?? payload.meta?.skill ?? "unknown",
+          blocks_count: Array.isArray(payload.blocks) ? payload.blocks.length : 0,
+          patch: !!payload.patch,
+          stage: payload._state?.stage ?? "unknown"
+        };
       }
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ ok: true }));
     }).catch((err) => {
       if (err?.code === "PAYLOAD_TOO_LARGE") {
+        req._pendingRenderLog = { error: "Payload too large" };
         res.writeHead(413, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Payload too large", maxBytes: MAX_BODY_BYTES }));
       } else {
+        req._pendingRenderLog = { error: "Invalid JSON in request body" };
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Invalid JSON in request body" }));
       }
     });
     return;
   }
+  if (method === "GET" && url === "/stats") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(analytics));
+    return;
+  }
+  req._responseError = "Not found";
   res.writeHead(404, { "Content-Type": "application/json" });
   res.end(JSON.stringify({ error: "Not found" }));
 }
@@ -1284,6 +1485,13 @@ async function startServer(overridePort) {
     startedAt: new Date(_startedAt).toISOString(),
     version: VERSION
   });
+  logAnalytics({
+    ts: (/* @__PURE__ */ new Date()).toISOString(),
+    event: "server_start",
+    port,
+    version: VERSION,
+    pid: process.pid
+  });
   if (!_handlersRegistered) {
     process.on("SIGTERM", shutdown);
     process.on("SIGINT", shutdown);
@@ -1294,6 +1502,13 @@ async function startServer(overridePort) {
 function shutdown() {
   if (_shuttingDown) return;
   _shuttingDown = true;
+  logAnalytics({
+    ts: (/* @__PURE__ */ new Date()).toISOString(),
+    event: "server_stop",
+    duration_s: _startedAt ? Math.floor((Date.now() - _startedAt) / 1e3) : 0,
+    renders: analytics.renders,
+    errors: analytics.errors
+  });
   deleteStateFile();
   if (_server) {
     if (typeof _server.closeAllConnections === "function") {
@@ -1305,6 +1520,9 @@ function shutdown() {
     process.exit(0);
   }
 }
+
+// terminal/app.js
+init_debugLog();
 
 // src/themes.js
 var themes = {
@@ -3362,8 +3580,8 @@ function filingTimeline(opts = {}) {
 }
 
 // terminal/state.js
-import path2 from "path";
-import os2 from "os";
+import path3 from "path";
+import os3 from "os";
 import { createRequire as createRequire2 } from "module";
 var _require2 = createRequire2(import.meta.url);
 function _resolveVersion2() {
@@ -3384,7 +3602,7 @@ var LIME_D = "\x1B[38;2;61;122;0m";
 var LIME_M = "\x1B[38;2;127;191;0m";
 var VERSION2 = { current: PKG_VERSION, latest: PKG_VERSION, upToDate: true };
 var BRIDGE_URL = "http://127.0.0.1:3100";
-var REPORTS_DIR = path2.join(os2.homedir(), ".heurist", "reports");
+var REPORTS_DIR = path3.join(os3.homedir(), ".heurist", "reports");
 var PANEL_NAMES_SET = /* @__PURE__ */ new Set([
   "quote",
   "chart",
@@ -3906,6 +4124,31 @@ function renderFlowSankeyPanel(data, width) {
   if (!nodes.length) return EARLY(pc("muted", "\u2014 No flow data"));
   return flowSankey({ nodes, flows: flowEdges, width });
 }
+function unknownPanelFallback(name, data, width) {
+  const panelLabel = (name || "UNKNOWN").toUpperCase();
+  const lines = [pc("muted", `[${panelLabel}]`)];
+  const PRIVATE_KEYS = /* @__PURE__ */ new Set(["_error", "_timestamp", "_annotations", "summary", "footnote", "highlights", "annotations", "groups"]);
+  const keyWidth = 14;
+  for (const [key, val] of Object.entries(data)) {
+    if (PRIVATE_KEYS.has(key)) continue;
+    const keyStr = padRight(String(key), keyWidth);
+    let valStr;
+    if (val === null || val === void 0) {
+      valStr = pc("muted", "\u2014");
+    } else if (Array.isArray(val)) {
+      valStr = pc("data", `[${val.length} items]`);
+    } else if (typeof val === "object") {
+      valStr = pc("data", JSON.stringify(val).slice(0, Math.max(10, width - keyWidth - 4)));
+    } else {
+      valStr = pc("data", String(val).slice(0, Math.max(10, width - keyWidth - 4)));
+    }
+    lines.push(pc("label", keyStr) + " " + valStr);
+  }
+  if (lines.length === 1) {
+    lines.push(pc("muted", "(no data)"));
+  }
+  return lines.join("\n");
+}
 var handlers = {
   quote: renderQuotePanel,
   chart: renderChartPanel,
@@ -3955,7 +4198,7 @@ function renderPanel(name, data, width = 80) {
   }
   const handler = handlers[name];
   if (!handler) {
-    return descriptiveFallback(name, data, "unknown panel type");
+    return unknownPanelFallback(name, data, width);
   }
   const handlerResult = handler(data, width, _panelWarnings);
   if (handlerResult && typeof handlerResult === "object" && "earlyReturn" in handlerResult) {
@@ -4666,6 +4909,9 @@ function onRender(payload) {
     const prev = tui.agentState?.stage;
     tui.agentState = payload._state;
     const stage = payload._state.stage;
+    if (stage !== prev) {
+      logStateTransition(prev ?? "none", stage, payload._state.skill ?? "unknown");
+    }
     if (stage === "gathering" || stage === "analyzing") {
       startRenderAnimation();
     } else {

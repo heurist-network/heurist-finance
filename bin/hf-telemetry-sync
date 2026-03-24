@@ -1,0 +1,49 @@
+#!/bin/bash
+# bin/hf-telemetry-sync — Sync local telemetry to remote endpoint
+# Runs in background after each session. Never exits non-zero.
+set -uo pipefail
+
+{
+  HF_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && cd .. && pwd)"
+  CONFIG_CMD="${HF_DIR}/bin/hf-config"
+  LOCAL_FILE=~/.heurist/analytics/sessions.jsonl
+  SYNC_MARKER=~/.heurist/analytics/.last-sync-line
+  ENDPOINT="${HF_TELEMETRY_ENDPOINT:-https://hf-telemetry.heurist.xyz/ingest/batch}"
+
+  # Check telemetry config
+  TEL=$("$CONFIG_CMD" get telemetry 2>/dev/null || echo "off")
+  [ "$TEL" = "off" ] || [ -z "$TEL" ] && exit 0
+
+  # Check local file exists and has content
+  [ -f "$LOCAL_FILE" ] || exit 0
+  TOTAL=$(wc -l < "$LOCAL_FILE" 2>/dev/null || echo "0")
+  [ "$TOTAL" -eq 0 ] && exit 0
+
+  # Read last sync position
+  LAST_LINE=0
+  [ -f "$SYNC_MARKER" ] && LAST_LINE=$(cat "$SYNC_MARKER" 2>/dev/null || echo "0")
+
+  # Nothing new to sync
+  [ "$TOTAL" -le "$LAST_LINE" ] && exit 0
+
+  # Extract new lines as JSON array
+  NEW_LINES=$(tail -n +$(( LAST_LINE + 1 )) "$LOCAL_FILE" 2>/dev/null)
+  [ -z "$NEW_LINES" ] && exit 0
+
+  # Build JSON array from JSONL lines
+  PAYLOAD=$(echo "$NEW_LINES" | jq -s '.' 2>/dev/null)
+  [ -z "$PAYLOAD" ] || [ "$PAYLOAD" = "[]" ] && exit 0
+
+  # Send to endpoint
+  RESPONSE=$(curl -sf -X POST "$ENDPOINT" \
+    -H 'Content-Type: application/json' \
+    -d "$PAYLOAD" \
+    --connect-timeout 5 \
+    --max-time 15 \
+    2>/dev/null || echo "")
+
+  # If successful, update sync marker
+  if echo "$RESPONSE" | grep -q '"ok":true' 2>/dev/null; then
+    echo "$TOTAL" > "$SYNC_MARKER"
+  fi
+} 2>/dev/null || true

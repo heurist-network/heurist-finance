@@ -491,6 +491,47 @@ function renderFlowSankeyPanel(data, width) {
   return flowSankey({ nodes, flows: flowEdges, width });
 }
 
+// ── Unknown panel fallback ───────────────────────────────────────────────────
+
+/**
+ * Render unknown panel types as a key-value table.
+ * Ensures any agent-sent data always produces SOMETHING visible.
+ *
+ * @param {string} name - Panel name (unknown)
+ * @param {Object} data - Panel data object
+ * @param {number} width - Available width
+ * @returns {string} ANSI-formatted key-value dump
+ */
+function unknownPanelFallback(name, data, width) {
+  const panelLabel = (name || 'UNKNOWN').toUpperCase();
+  const lines = [pc('muted', `[${panelLabel}]`)];
+
+  const PRIVATE_KEYS = new Set(['_error', '_timestamp', '_annotations', 'summary', 'footnote', 'highlights', 'annotations', 'groups']);
+  const keyWidth = 14;
+
+  for (const [key, val] of Object.entries(data)) {
+    if (PRIVATE_KEYS.has(key)) continue;
+    const keyStr = padRight(String(key), keyWidth);
+    let valStr;
+    if (val === null || val === undefined) {
+      valStr = pc('muted', '—');
+    } else if (Array.isArray(val)) {
+      valStr = pc('data', `[${val.length} items]`);
+    } else if (typeof val === 'object') {
+      valStr = pc('data', JSON.stringify(val).slice(0, Math.max(10, width - keyWidth - 4)));
+    } else {
+      valStr = pc('data', String(val).slice(0, Math.max(10, width - keyWidth - 4)));
+    }
+    lines.push(pc('label', keyStr) + ' ' + valStr);
+  }
+
+  if (lines.length === 1) {
+    lines.push(pc('muted', '(no data)'));
+  }
+
+  return lines.join('\n');
+}
+
 // ── Handler registry ────────────────────────────────────────────────────────
 
 const handlers = {
@@ -563,7 +604,7 @@ export function renderPanel(name, data, width = 80) {
   // Dispatch to handler
   const handler = handlers[name];
   if (!handler) {
-    return descriptiveFallback(name, data, 'unknown panel type');
+    return unknownPanelFallback(name, data, width);
   }
 
   // Verdict handler needs _panelWarnings; all others ignore the third arg

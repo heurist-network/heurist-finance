@@ -52,4 +52,5 @@ export const schema = {
     return data;
   },
   shape: 'object with { rows: [{label, values}], columns: string[] }',
+  mcpTools: [],
 };

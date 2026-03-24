@@ -1,0 +1,90 @@
+#!/bin/bash
+# bin/hf-config — Heurist Finance configuration manager
+
+CONFIG_DIR="$HOME/.heurist"
+CONFIG_FILE="$CONFIG_DIR/config.yaml"
+
+VALID_TELEMETRY="community|anonymous|off"
+
+_ensure_config() {
+  if [ ! -d "$CONFIG_DIR" ]; then
+    mkdir -p "$CONFIG_DIR"
+  fi
+  if [ ! -f "$CONFIG_FILE" ]; then
+    touch "$CONFIG_FILE"
+  fi
+}
+
+_get() {
+  local key="$1"
+  _ensure_config
+  local line
+  line=$(grep "^${key}:" "$CONFIG_FILE" 2>/dev/null | head -1)
+  if [ -z "$line" ]; then
+    echo ""
+  else
+    echo "$line" | sed 's/^[^:]*:[[:space:]]*//'
+  fi
+}
+
+_set() {
+  local key="$1"
+  local value="$2"
+  _ensure_config
+
+  if grep -q "^${key}:" "$CONFIG_FILE" 2>/dev/null; then
+    sed -i "s|^${key}:.*|${key}: ${value}|" "$CONFIG_FILE"
+  else
+    echo "${key}: ${value}" >> "$CONFIG_FILE"
+  fi
+}
+
+_list() {
+  _ensure_config
+  cat "$CONFIG_FILE"
+}
+
+_usage() {
+  echo "Usage:"
+  echo "  hf-config get <key>          Print value (empty string if not set)"
+  echo "  hf-config set <key> <value>  Set value"
+  echo "  hf-config list               Show all config"
+  echo ""
+  echo "Supported keys:"
+  echo "  telemetry    community, anonymous, or off"
+  echo "  debug_log    true or false"
+}
+
+cmd="${1:-}"
+
+case "$cmd" in
+  get)
+    if [ -z "${2:-}" ]; then
+      echo "Error: key required" >&2
+      exit 1
+    fi
+    _get "$2"
+    ;;
+  set)
+    if [ -z "${2:-}" ] || [ -z "${3:-}" ]; then
+      echo "Error: key and value required" >&2
+      exit 1
+    fi
+    key="$2"
+    value="$3"
+    if [ "$key" = "telemetry" ]; then
+      if ! echo "$value" | grep -qE "^($VALID_TELEMETRY)$"; then
+        echo "Error: telemetry must be one of: community, anonymous, off" >&2
+        exit 1
+      fi
+    fi
+    _set "$key" "$value"
+    ;;
+  list)
+    _list
+    ;;
+  *)
+    _usage
+    exit 1
+    ;;
+esac

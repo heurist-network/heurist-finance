@@ -33,4 +33,5 @@ export const schema = {
     return data;
   },
   shape: 'object with { holders: [{name, shares, percent}] }',
+  mcpTools: ['sec.institutional_holders', 'yahoo.fund_snapshot'],
 };

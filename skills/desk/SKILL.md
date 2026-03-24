@@ -1,24 +1,24 @@
 ---
 name: desk
-description: Use when the user wants a fast market snapshot, a quick price check, a one-line gut-check on a ticker or the overall market, or asks "how's the market" / "what's NVDA at" / "quick pulse". The zero-friction entry point — no setup, minimal questions, data in seconds.
+description: Use when the user wants a fast market snapshot, a quick price check, a one-line gut-check on a ticker or the overall market, or asks "how's the market" / "what's NVDA at" / "quick pulse". The zero-friction entry point - no setup, minimal questions, data in seconds.
 ---
 
 > **PREREQUISITE:** Read `../../SKILL.md` (two directories up from this file) first. It defines
 > identity, MCP setup, TUI /connect handshake, render protocol, and the shape catalog.
 > This file handles only the sub-skill-specific flow.
 
-# Desk — Quick Market Snapshot
+# Desk - Quick Market Snapshot
 
 *30 seconds. One thing the floor needs to know.*
 
 The fastest sub-skill. 3–5 MCP calls. Under 5 seconds. No depth questions, no focus questions, no theme questions. Just data.
 
-Loaded after the main Heurist Finance router — MCP setup and tool tables are already complete. All tools use the `mcp__heurist-finance__` prefix.
+Loaded after the main Heurist Finance router - MCP setup and tool tables are already complete. All tools use the `mcp__heurist-finance__` prefix.
 
 ## Desk Posture
 
 Lead with the single most important thing happening right now. Not a list of
-facts — one sentence that a portfolio manager scanning the tape needs to hear.
+facts - one sentence that a portfolio manager scanning the tape needs to hear.
 
 No equivocation. If nothing matters, say "quiet tape, nothing actionable."
 
@@ -29,14 +29,17 @@ No equivocation. If nothing matters, say "quiet tape, nothing actionable."
 ```
 args contain a ticker or company name?
   YES → skip all questions, go straight to Data Pipeline (Ticker Mode)
-  NO  → ask ONE question:
-          "Broad market or a specific name?"
-          [1] Market overview (default)
-          [2] Specific ticker: ___
+  NO  → ask ONE question: broad market or a specific name?
         → branch on answer
 ```
 
 That is the only question ever asked. No depth. No focus. No theme.
+
+### User Impatience Protocol
+
+If the user says anything that makes intent clear ("just show me the market",
+"what's NVDA at", "quick check"): skip the question entirely and go.
+The whole point of Desk is zero friction.
 
 ---
 
@@ -51,20 +54,23 @@ First run (no sessions dir): skip silently.
 
 ## Data Pipeline
 
+**Voice reminder:** Between phases, if you speak to the user, it's a finding -
+not a status update. Never narrate what you're fetching.
+
 ### Ticker Mode (3 calls)
 
 Run all in parallel after resolving the symbol:
 
-1. `mcp__heurist-finance__yahoofinanceagent_resolve_symbol` — get canonical symbol + name
-2. `mcp__heurist-finance__yahoofinanceagent_quote_snapshot` — price, change, volume, market cap
-3. `mcp__heurist-finance__yahoofinanceagent_technical_snapshot` — RSI, MACD, signals
+1. `mcp__heurist-finance__yahoofinanceagent_resolve_symbol` - get canonical symbol + name
+2. `mcp__heurist-finance__yahoofinanceagent_quote_snapshot` - price, change, volume, market cap
+3. `mcp__heurist-finance__yahoofinanceagent_technical_snapshot` - RSI, MACD, signals
 
 Total: 3 calls (resolve first, then 2 parallel).
 
 ### Market Mode (1–2 calls)
 
-1. `mcp__heurist-finance__yahoofinanceagent_market_overview` — US indices, breadth, sectors
-2. `mcp__heurist-finance__fredmacroagent_macro_regime_context` — (optional, add if < 5s budget remains)
+1. `mcp__heurist-finance__yahoofinanceagent_market_overview` - US indices, breadth, sectors
+2. `mcp__heurist-finance__fredmacroagent_macro_regime_context` - (optional, add if < 5s budget remains)
 
 Total: 1–2 calls.
 
@@ -72,13 +78,18 @@ Total: 1–2 calls.
 
 ## Render Dispatch
 
-Single POST to `localhost:7707/render` — no progressive rendering needed at this call volume.
+Single POST - no progressive rendering needed at this call volume. Write the
+full payload to `/tmp/hf-render.json`, then POST: `hf-post /tmp/hf-render.json`.
+
+Density contract: desk minimum is **6 panels** for a complete snapshot. If
+you have fewer than 6 panels, add more data (technical gauges, a second quote
+row, or a brief news item) before setting `stage: "complete"`.
 
 ### Ticker Pulse Payload
 
+Write to `/tmp/hf-render.json`:
 ```json
 {
-  "action": "render",
   "blocks": [
     {
       "panel": "quote",
@@ -87,8 +98,8 @@ Single POST to `localhost:7707/render` — no progressive rendering needed at th
         "name": "NVIDIA Corporation",
         "price": 172.70,
         "changePct": -3.6,
-        "volume": "209.8M",
-        "marketCap": "$4.20T",
+        "volume": 209800000,
+        "marketCap": 4200000000000,
         "variant": "compact"
       }
     },
@@ -99,34 +110,60 @@ Single POST to `localhost:7707/render` — no progressive rendering needed at th
         "signals": ["SELL 85%"]
       }
     }
-  ]
+  ],
+  "_state": {
+    "stage": "complete",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "desk",
+    "query": "NVDA",
+    "tools": { "called": 3, "total": 3, "current": null, "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot"] },
+    "follow_ups": [
+      { "key": "1", "label": "Full analyst deep dive" },
+      { "key": "2", "label": "Macro context" }
+    ]
+  }
 }
 ```
+Then POST: `hf-post /tmp/hf-render.json`
 
-`signals` is one entry only — the headline signal string. No signal breakdown tables.
+`signals` is one entry only - the headline signal string. No signal breakdown tables.
 
 ### Market Pulse Payload
 
+Write to `/tmp/hf-render.json`:
 ```json
 {
-  "action": "render",
   "blocks": [
     {
       "panel": "macro",
       "data": {
         "pillars": [
-          "Inflation: STICKY ↓",
-          "Rates: NORMAL ↓",
-          "Labor: MIXED ↑",
-          "Growth: SLOW ↓"
+          { "pillar": "Inflation", "state": "STICKY", "direction": "down" },
+          { "pillar": "Rates", "state": "NORMAL", "direction": "down" },
+          { "pillar": "Labor", "state": "MIXED", "direction": "up" },
+          { "pillar": "Growth", "state": "SLOW", "direction": "down" }
         ]
       }
     }
-  ]
+  ],
+  "_state": {
+    "stage": "complete",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "desk",
+    "query": "market pulse",
+    "tools": { "called": 2, "total": 2, "current": null, "completed": ["market_overview", "macro_regime_context"] },
+    "follow_ups": [
+      { "key": "1", "label": "Macro deep dive" },
+      { "key": "2", "label": "Sector rotation view" }
+    ]
+  }
 }
 ```
+Then POST: `hf-post /tmp/hf-render.json`
 
-`pillars` is a flat list of brief regime strings. No sub-tables, no charts.
+`pillars` uses the object format: `{ "pillar": string, "state": string, "direction": "up" | "down" | "flat" }`. Direction must be a string - not an arrow character.
 
 ### Fallback (TUI not running)
 
@@ -134,7 +171,7 @@ Render as compact markdown in chat:
 
 ```
 **NVDA** $172.70 ▼3.6% | Vol 209.8M | Cap $4.20T
-RSI 37.8 — SELL (85%) | Support $171.73 / Resist $197.62
+RSI 37.8 - SELL (85%) | Support $171.73 / Resist $197.62
 ```
 
 Or for market mode, a 2-line regime summary.
@@ -160,28 +197,31 @@ Or for market mode, a 2-line regime summary.
 
 ## Follow-up
 
-After rendering, ask exactly one follow-up:
+After rendering, ask exactly one follow-up in your own voice - a contextual
+read of what the data shows, with a natural offer to go deeper if warranted.
+Let the data drive the framing (e.g. if NVDA is breaking down, surface that;
+if it's a quiet tape, say so).
 
-> "{Contextual read of the data — e.g., 'Nothing's on fire right now.' or 'Tech's getting hit.'} Want to drill into [top mover], check the macro picture, or are we done?"
-- **"[Top mover] — full tearsheet"** → route to `heurist-finance:analyst` with the same ticker
-- **"What's the macro doing"** → route to `heurist-finance:strategist`
-- **"Done"** → exit cleanly
+Common directions if the user wants more:
+- Specific name is interesting → route to `heurist-finance:analyst`
+- Macro context needed → route to `heurist-finance:strategist`
 
-Do not volunteer additional analysis. Do not fetch more data unless the user picks an option.
+Do not volunteer additional analysis. Do not fetch more data unless the user
+asks for it.
 
 ---
 
 ## Research Mode
 
 When TUI is not running, output compact markdown in chat. Same data, same
-personality — just no canvas.
+personality - just no canvas.
 
 **Ticker pulse:**
 
 ```
 ▐██ **HEURIST FINANCE** · desk · AAPL
 
-## AAPL — Apple Inc  $213.49  (+0.8%)
+## AAPL - Apple Inc  $213.49  (+0.8%)
 
 > Quiet tape. Holding the 50-day at `$210`, vol below average. Nothing
 > actionable until earnings May 1.
@@ -200,7 +240,7 @@ personality — just no canvas.
 ```
 ▐██ **HEURIST FINANCE** · desk · market pulse
 
-## Market Pulse — 2026-03-22 14:32 ET
+## Market Pulse - 2026-03-22 14:32 ET
 
 > Risk-off day. Yields spiking on hot PPI, tech leading selloff.
 > `SPY $508` is the line.
@@ -215,9 +255,9 @@ personality — just no canvas.
 
 Rules:
 - Thesis in blockquote, one sentence max. Name the level.
-- Data rows are single-line dense — not cards.
+- Data rows are single-line dense - not cards.
 - Footer: model · tool count · estimated cost.
-- Prior session note above blockquote when relevant: `*Prior (Mar 15): bullish — now risk-off*`
+- Prior session note above blockquote when relevant: `*Prior (Mar 15): bullish - now risk-off*`
 
 ---
 
@@ -271,8 +311,8 @@ zero-padded to 3 digits. Delete sessions older than 90 days:
 ## Constraints
 
 - Max 5 MCP calls total. If a call errors, skip it and render with what you have.
-- No analyst data, no news, no insiders, no earnings — those belong in `:analyst`.
-- `variant: "compact"` on the quote panel is mandatory — keeps the layout single-row.
+- No analyst data, no news, no insiders, no earnings - those belong in `:analyst`.
+- `variant: "compact"` on the quote panel is mandatory - keeps the layout single-row.
 - `signals` array holds exactly one entry: the dominant signal as a short string.
-- The `macro.pillars` array is plain strings — no nested objects.
+- The `macro.pillars` array uses objects: `{ "pillar": string, "state": string, "direction": "up"|"down"|"flat" }` - not flat strings.
 - Never ask about depth, focus, theme, or time range.

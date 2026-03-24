@@ -1,0 +1,83 @@
+#!/bin/bash
+# bin/hf-telemetry-log — Log telemetry event to sessions.jsonl
+# Respects user's telemetry config. Never exits non-zero.
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGE_JSON="$SCRIPT_DIR/../package.json"
+ANALYTICS_DIR="$HOME/.heurist/analytics"
+SESSIONS_FILE="$ANALYTICS_DIR/sessions.jsonl"
+
+# Parse arguments
+skill=""
+duration=""
+outcome=""
+tools=""
+panels=""
+session_id=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skill)      skill="$2";      shift 2 ;;
+    --duration)   duration="$2";   shift 2 ;;
+    --outcome)    outcome="$2";    shift 2 ;;
+    --tools)      tools="$2";      shift 2 ;;
+    --panels)     panels="$2";     shift 2 ;;
+    --session-id) session_id="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+
+{
+  # Read telemetry config
+  telemetry_mode="$("$SCRIPT_DIR/hf-config" get telemetry 2>/dev/null || true)"
+
+  # Exit silently if off or unset
+  if [[ -z "$telemetry_mode" || "$telemetry_mode" == "off" ]]; then
+    exit 0
+  fi
+
+  # Collect metadata
+  os="$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]' || true)"
+  arch="$(uname -m 2>/dev/null || true)"
+  ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || true)"
+
+  # Read version from package.json
+  hf_version=""
+  if [[ -f "$PACKAGE_JSON" ]]; then
+    hf_version="$(grep '"version"' "$PACKAGE_JSON" 2>/dev/null | head -1 | sed 's/.*"version":[[:space:]]*"\([^"]*\)".*/\1/' || true)"
+  fi
+
+  # Determine installation_id
+  if [[ "$telemetry_mode" == "community" ]]; then
+    installation_id="$(printf '%s' "$(hostname)-$(whoami)" 2>/dev/null | sha256sum 2>/dev/null | cut -d' ' -f1 || true)"
+    installation_id_json="\"$installation_id\""
+  else
+    installation_id_json="null"
+  fi
+
+  # Ensure analytics directory exists
+  mkdir -p "$ANALYTICS_DIR" 2>/dev/null || true
+
+  # Build and append JSONL record
+  record="$(printf '{"v":1,"ts":"%s","event_type":"session_end","skill":"%s","session_id":"%s","hf_version":"%s","os":"%s","arch":"%s","duration_s":%s,"outcome":"%s","tools_called":%s,"panels_rendered":%s,"installation_id":%s}' \
+    "$ts" \
+    "$skill" \
+    "$session_id" \
+    "$hf_version" \
+    "$os" \
+    "$arch" \
+    "${duration:-0}" \
+    "$outcome" \
+    "${tools:-0}" \
+    "${panels:-0}" \
+    "$installation_id_json" \
+  2>/dev/null || true)"
+
+  if [[ -n "$record" ]]; then
+    printf '%s\n' "$record" >> "$SESSIONS_FILE" 2>/dev/null || true
+  fi
+
+} 2>/dev/null || true
+
+exit 0

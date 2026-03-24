@@ -41,4 +41,5 @@ export const schema = {
     return data;
   },
   shape: 'object with { transactions: [{date, name, type, shares, amount}] }',
+  mcpTools: ['sec.insider_activity'],
 };

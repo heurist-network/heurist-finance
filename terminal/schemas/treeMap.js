@@ -9,7 +9,18 @@ export const schema = {
 
   coerce: {
     items: (val, data) => {
-      if (!Array.isArray(val)) data.items = [];
+      if (!Array.isArray(val)) {
+        data.items = [];
+        return;
+      }
+      // Coerce numeric fields (weight, value) on each item
+      data.items = val.map(item => {
+        if (typeof item !== 'object' || item === null) return item;
+        const out = { ...item };
+        if (typeof out.weight === 'string') out.weight = Number(out.weight);
+        if (typeof out.value  === 'string') out.value  = Number(out.value);
+        return out;
+      });
     },
     height: (val, data) => {
       data.height = Number(val) || 10;
@@ -19,4 +30,5 @@ export const schema = {
   defaults: {
     height: 10,
   },
+  mcpTools: ['yahoo.fund_snapshot', 'yahoo.equity_screen'],
 };

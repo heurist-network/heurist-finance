@@ -36,4 +36,5 @@ export const schema = {
     return data;
   },
   shape: 'object with { bars: [{open, high, low, close, volume}] }',
+  mcpTools: ['yahoo.price_history'],
 };

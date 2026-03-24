@@ -12,6 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { EventEmitter } from 'events';
+import { logConnection, logDisconnect, logRender, logRenderError } from './debugLog.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -20,6 +21,9 @@ import { EventEmitter } from 'events';
 const DEFAULT_PORT = 7707;
 const STATE_DIR = path.join(os.homedir(), '.heurist');
 const STATE_FILE = path.join(STATE_DIR, 'tui.json');
+const ANALYTICS_DIR = path.join(STATE_DIR, 'analytics');
+const ANALYTICS_FILE = path.join(ANALYTICS_DIR, 'requests.jsonl');
+const ANALYTICS_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 const VALID_ACTIONS = new Set(['render', 'focus', 'layout', 'clear']);
 import { createRequire } from 'module';
 // __PKG_VERSION__ is replaced by esbuild at bundle time (scripts/build.js define).
@@ -30,6 +34,45 @@ function _resolveVersion() {
   try { return _require('../package.json').version; } catch { return '0.0.0'; }
 }
 const VERSION = _resolveVersion();
+
+// ---------------------------------------------------------------------------
+// Analytics — in-memory counters + JSONL file logger
+// ---------------------------------------------------------------------------
+
+const analytics = {
+  renders: 0,
+  patches: 0,
+  errors: 0,
+  totalBlocks: 0,
+  firstRenderAt: null,
+  lastRenderAt: null,
+  skills: {},  // { analyst: 3, desk: 1 }
+};
+
+/**
+ * Append a single analytics entry to the JSONL log file.
+ * Auto-rotates when the file exceeds ANALYTICS_MAX_BYTES.
+ * All I/O errors are silently swallowed — logging must never fail a request.
+ */
+function logAnalytics(entry) {
+  try {
+    fs.mkdirSync(ANALYTICS_DIR, { recursive: true });
+
+    // Rotate if file is too large
+    try {
+      const stat = fs.statSync(ANALYTICS_FILE);
+      if (stat.size > ANALYTICS_MAX_BYTES) {
+        fs.renameSync(ANALYTICS_FILE, ANALYTICS_FILE + '.bak');
+      }
+    } catch {
+      // File doesn't exist yet — that's fine
+    }
+
+    fs.appendFileSync(ANALYTICS_FILE, JSON.stringify(entry) + '\n');
+  } catch {
+    // Never propagate logging errors
+  }
+}
 
 // ── Session lock — one agent per TUI ────────────────────────────────────────
 let _agentSession = null; // { agent: string, connectedAt: number } or null
@@ -180,7 +223,75 @@ function readBody(req) {
 // HTTP request handler
 // ---------------------------------------------------------------------------
 
+/**
+ * Thin wrapper that captures timing and writes to the JSONL log after the
+ * response is finished.  All logging is in try/catch so it can never interfere
+ * with normal request handling.
+ */
 function handleRequest(req, res) {
+  const _reqStart = Date.now();
+
+  // After the response is sent, write the log entry
+  res.on('finish', () => {
+    try {
+      const duration_ms = Date.now() - _reqStart;
+      const status = res.statusCode;
+      const { method, url: path } = req;
+
+      if (path === '/render') {
+        // render-specific fields are appended by the render handler via _pendingRenderLog
+        const pending = req._pendingRenderLog || {};
+        logAnalytics({
+          ts: new Date().toISOString(),
+          method,
+          path,
+          status,
+          duration_ms,
+          ...pending,
+          error: pending.error ?? null,
+        });
+        // Update in-memory counters for successful renders
+        if (status === 200) {
+          const now = new Date().toISOString();
+          analytics.renders++;
+          if (pending.patch) analytics.patches++;
+          if (pending.blocks_count) analytics.totalBlocks += pending.blocks_count;
+          if (!analytics.firstRenderAt) analytics.firstRenderAt = now;
+          analytics.lastRenderAt = now;
+          if (pending.skill) {
+            if (analytics.skills[pending.skill] !== undefined || Object.keys(analytics.skills).length < 50) {
+              analytics.skills[pending.skill] = (analytics.skills[pending.skill] || 0) + 1;
+            }
+          }
+          logRender(
+            pending.skill ?? 'unknown',
+            pending.blocks_count ?? 0,
+            pending.patch ?? false,
+            pending.stage ?? 'unknown',
+          );
+        } else {
+          analytics.errors++;
+          logRenderError(status, pending.error ?? '');
+        }
+      } else {
+        const entry = {
+          ts: new Date().toISOString(),
+          method,
+          path,
+          status,
+          duration_ms,
+        };
+        if (status >= 400) {
+          entry.error = req._responseError || null;
+        }
+        logAnalytics(entry);
+        if (status >= 400) analytics.errors++;
+      }
+    } catch {
+      // Never propagate logging errors
+    }
+  });
+
   setCorsHeaders(res);
 
   // Pre-flight
@@ -241,6 +352,7 @@ function handleRequest(req, res) {
           query: payload?.query || null,
           connectedAt: Date.now(),
         };
+        logConnection(agentId, modelId);
         // Update splash with connection status
         const label = modelId ? `${agentId} · ${modelId}` : agentId;
         emitter.emit('_splash', {
@@ -289,6 +401,7 @@ function handleRequest(req, res) {
           return;
         }
 
+        logDisconnect(agentId);
         _agentSession = null;
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'disconnected' }));
@@ -308,6 +421,7 @@ function handleRequest(req, res) {
   // POST /render — requires active session via /connect + agent identity match
   if (method === 'POST' && url === '/render') {
     if (!_agentSession) {
+      req._pendingRenderLog = { error: 'No agent connected' };
       res.writeHead(403, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'No agent connected. POST /connect first.' }));
       return;
@@ -317,12 +431,14 @@ function handleRequest(req, res) {
         // Verify caller matches connected agent
         const callerId = payload?.agent;
         if (callerId && callerId !== _agentSession.agent) {
+          req._pendingRenderLog = { error: 'Agent ID mismatch' };
           res.writeHead(403, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Agent ID mismatch', connected: _agentSession.agent }));
           return;
         }
         const action = payload?.action;
         if (!VALID_ACTIONS.has(action)) {
+          req._pendingRenderLog = { agent: callerId, error: `Invalid action "${action}"` };
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
             error: `Invalid action "${action}". Must be one of: ${[...VALID_ACTIONS].join(', ')}`,
@@ -336,6 +452,7 @@ function handleRequest(req, res) {
         if (action === 'render') {
           // Reject if blocks are sent inline
           if (payload.blocks !== undefined) {
+            req._pendingRenderLog = { agent: callerId, error: 'Inline blocks not accepted' };
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
               error: 'Inline blocks not accepted. Write blocks to a file and POST {"action":"render","file":"/path/to/file.json"}',
@@ -345,6 +462,7 @@ function handleRequest(req, res) {
 
           // Require a file path
           if (!payload.file) {
+            req._pendingRenderLog = { agent: callerId, error: 'Missing "file" field' };
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
               error: 'Missing "file" field. Write blocks to a file and POST {"action":"render","file":"/path/to/file.json"}',
@@ -352,10 +470,11 @@ function handleRequest(req, res) {
             return;
           }
 
-          const filePath = payload.file;
+          const filePath = path.resolve(payload.file);
 
           // Security: only allow files under /tmp/
           if (!filePath.startsWith('/tmp/')) {
+            req._pendingRenderLog = { agent: callerId, error: 'File path must be under /tmp/' };
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
               error: 'File path must be under /tmp/. Got: ' + filePath,
@@ -368,6 +487,7 @@ function handleRequest(req, res) {
           try {
             const stat = fs.statSync(filePath);
             if (stat.size > MAX_BODY_BYTES) {
+              req._pendingRenderLog = { agent: callerId, error: 'File too large' };
               res.writeHead(413, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ error: 'File too large', maxBytes: MAX_BODY_BYTES }));
               return;
@@ -375,9 +495,11 @@ function handleRequest(req, res) {
             fileContents = fs.readFileSync(filePath, 'utf8');
           } catch (readErr) {
             if (readErr.code === 'ENOENT') {
+              req._pendingRenderLog = { agent: callerId, error: `File not found: ${filePath}` };
               res.writeHead(404, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ error: `File not found: ${filePath}` }));
             } else {
+              req._pendingRenderLog = { agent: callerId, error: `Could not read file: ${readErr.message}` };
               res.writeHead(500, { 'Content-Type': 'application/json' });
               res.end(JSON.stringify({ error: `Could not read file: ${readErr.message}` }));
             }
@@ -388,12 +510,15 @@ function handleRequest(req, res) {
           try {
             filePayload = JSON.parse(fileContents);
           } catch {
+            req._pendingRenderLog = { agent: callerId, error: `Invalid JSON in file: ${filePath}` };
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: `Invalid JSON in file: ${filePath}` }));
             return;
           }
 
           // Merge file contents into payload (blocks, _state, meta, theme, patch, layout, panels)
+          // Progressive rendering uses patch: true — the app layer (state.js applyPatch)
+          // handles merging by block type/id. Server passes blocks through as-is.
           if (filePayload.blocks !== undefined) payload.blocks = filePayload.blocks;
           if (filePayload._state !== undefined) payload._state = filePayload._state;
           if (filePayload.meta !== undefined) payload.meta = filePayload.meta;
@@ -406,6 +531,7 @@ function handleRequest(req, res) {
 
         // Accept optional theme in payload — validate if present
         if (payload.theme !== undefined && !VALID_THEMES.has(payload.theme)) {
+          req._pendingRenderLog = { agent: payload.agent, error: `Unknown theme "${payload.theme}"` };
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({
             error: `Unknown theme "${payload.theme}". Valid: ${[...VALID_THEMES].join(', ')}`,
@@ -421,9 +547,25 @@ function handleRequest(req, res) {
         try {
           emitter.emit(action, payload);
         } catch (emitErr) {
+          req._pendingRenderLog = {
+            agent: payload.agent,
+            skill: payload._state?.skill,
+            action,
+            error: `Render error: ${emitErr.message}`,
+          };
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: `Render error: ${emitErr.message}` }));
           return;
+        }
+
+        // Annotate pending log fields for the res.on('finish') analytics hook
+        if (action === 'render') {
+          req._pendingRenderLog = {
+            skill: payload._state?.skill ?? payload.meta?.skill ?? 'unknown',
+            blocks_count: Array.isArray(payload.blocks) ? payload.blocks.length : 0,
+            patch: !!payload.patch,
+            stage: payload._state?.stage ?? 'unknown',
+          };
         }
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -431,9 +573,11 @@ function handleRequest(req, res) {
       })
       .catch((err) => {
         if (err?.code === 'PAYLOAD_TOO_LARGE') {
+          req._pendingRenderLog = { error: 'Payload too large' };
           res.writeHead(413, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Payload too large', maxBytes: MAX_BODY_BYTES }));
         } else {
+          req._pendingRenderLog = { error: 'Invalid JSON in request body' };
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Invalid JSON in request body' }));
         }
@@ -441,7 +585,15 @@ function handleRequest(req, res) {
     return;
   }
 
+  // GET /stats — session analytics summary
+  if (method === 'GET' && url === '/stats') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(analytics));
+    return;
+  }
+
   // 404 for everything else
+  req._responseError = 'Not found';
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Not found' }));
 }
@@ -478,6 +630,14 @@ export async function startServer(overridePort) {
     version: VERSION,
   });
 
+  logAnalytics({
+    ts: new Date().toISOString(),
+    event: 'server_start',
+    port,
+    version: VERSION,
+    pid: process.pid,
+  });
+
   // Only register signal handlers once (module-level flag, not listenerCount)
   if (!_handlersRegistered) {
     process.on('SIGTERM', shutdown);
@@ -494,6 +654,13 @@ export async function startServer(overridePort) {
 export function shutdown() {
   if (_shuttingDown) return;
   _shuttingDown = true;
+  logAnalytics({
+    ts: new Date().toISOString(),
+    event: 'server_stop',
+    duration_s: _startedAt ? Math.floor((Date.now() - _startedAt) / 1000) : 0,
+    renders: analytics.renders,
+    errors: analytics.errors,
+  });
   deleteStateFile();
   if (_server) {
     // closeAllConnections() force-drains keep-alive sockets (Node 18.2+)

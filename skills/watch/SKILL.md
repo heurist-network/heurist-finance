@@ -12,13 +12,13 @@ description: |
 > identity, MCP setup, TUI /connect handshake, render protocol, and the shape catalog.
 > This file handles only the sub-skill-specific flow.
 
-# /heurist-finance:watch — Heurist Finance Tracked Tickers Dashboard
+# /heurist-finance:watch - Heurist Finance Tracked Tickers Dashboard
 
 *What changed? Flag the movers.*
 
 This sub-skill is loaded by the main `/heurist-finance` router when the user
 requests their Heurist Finance watchlist. MCP setup, tool tables, TUI detection, and render
-dispatch protocol are already established by the parent SKILL.md — do not
+dispatch protocol are already established by the parent SKILL.md - do not
 repeat them here.
 
 All MCP tools are prefixed `mcp__heurist-finance__`.
@@ -26,7 +26,7 @@ All MCP tools are prefixed `mcp__heurist-finance__`.
 ## Watch Posture
 
 Flag what's changed since last check, not just current state. The user doesn't
-need to see that AAPL is at $211 — they need to know it dropped 3% since
+need to see that AAPL is at $211 - they need to know it dropped 3% since
 yesterday on services revenue miss guidance.
 
 For any mover >3%, state whether the move is noise or signal. A 3% drop on
@@ -45,7 +45,19 @@ First run (no sessions dir): skip silently.
 
 ---
 
-## Step 1 — Load Watchlist
+## Interactive Flow
+
+Ask in your own voice. The options below are guidance, not a script to read verbatim.
+
+### User Impatience Protocol
+
+If the user says "skip" or their intent is clear (e.g., "just show me quick
+status for everything"): use sensible defaults and go. Don't force the
+interactive flow when intent is clear.
+
+---
+
+## Step 1 - Load Watchlist
 
 Read `~/.heurist/watchlist.json`.
 
@@ -77,36 +89,41 @@ Replace the array with the parsed symbols. Confirm: "Watchlist saved."
 
 ---
 
-## Step 2 — Choose View
+## Step 2 - Choose View
 
-ASK (use ask tool with options): "How do you want to see this?"
+**ASK** how they want to see this. Options:
 
-- **Quick status — one line per ticker, sorted by who's moving** *(Recommended)*
-- **Detailed — panels with technicals and analyst data per name**
-- **Movers only — just the ones that moved, skip the quiet ones**
+- **Quick status** - one line per ticker, sorted by who's moving *(Recommended)*
+- **Detailed** - panels with technicals and analyst data per name
+- **Movers only** - just the ones that moved, skip the quiet ones
 
-Wait for answer before fetching any data.
+**STOP - wait for user response before fetching any data.**
 
 ---
 
-## Step 3 — Select Tickers (if > 5)
+## Step 3 - Select Tickers (if > 5)
 
-If the watchlist contains more than 5 tickers, ASK:
+If the watchlist contains more than 5 tickers, **ASK**:
 
-- **Show all** — fetch and render every ticker
-- **Select subset** — ask user to name the tickers they want (comma-separated)
+- **Show all** - fetch and render every ticker
+- **Select subset** - ask user to name the tickers they want
 
-For "Select subset": wait for input, filter the watchlist to the named symbols,
-preserve order from the watchlist.
+**STOP - wait for user response before proceeding.**
+
+For "Select subset": filter the watchlist to the named symbols, preserve order
+from the watchlist.
 
 ---
 
 ## Data Pipeline
 
+**Voice reminder:** Between phases, if you speak to the user, it's a finding -
+not a status update. Never narrate what you're fetching.
+
 Run phases in order. Parallelize within each phase. POST to TUI after each
 phase that produces renderable data (progressive rendering).
 
-### Phase 1 — Symbol Resolution (parallel, all tickers)
+### Phase 1 - Symbol Resolution (parallel, all tickers)
 
 For each ticker in the selected list, call `resolve_symbol` in parallel.
 
@@ -117,10 +134,12 @@ mcp__heurist-finance__yahoofinanceagent_resolve_symbol(query: "<TICKER>")
 Collect canonical symbols. If any ticker fails resolution, note it and skip
 it from subsequent phases (do not block).
 
-### Phase 2 — Quote Snapshot (parallel, all tickers)
+Phase 1 produces no renderable data - do not POST yet.
+
+### Phase 2 - Quote Snapshot (parallel, all tickers)
 
 For each resolved symbol, call `quote_snapshot` in parallel. This phase is
-the **minimum required** — POST a first render after this phase completes.
+the **minimum required** - POST a first render after this phase completes.
 
 ```
 mcp__heurist-finance__yahoofinanceagent_quote_snapshot(symbol: "<resolved_symbol>")
@@ -146,7 +165,10 @@ For **Movers Only** view: after Phase 2, filter to tickers where
 `|changePct|`. If the filtered list is empty, show a note "No significant
 movers today" and offer the full Quick Status instead.
 
-### Phase 3 — Technicals + Analyst (Detailed view only, parallel)
+**STOP - POST Phase 2 render before fetching the next phase.** This is the
+first POST (no `patch` flag).
+
+### Phase 3 - Technicals + Analyst (Detailed view only, parallel)
 
 Skip this phase for Quick Status and Movers Only.
 
@@ -180,7 +202,10 @@ Map analyst result:
 }
 ```
 
-### Phase 4 — Macro Regime (shared, always)
+**STOP - POST Phase 3 incremental update before fetching the next phase.**
+Include `"patch": true`.
+
+### Phase 4 - Macro Regime (shared, always)
 
 Call once regardless of view:
 ```
@@ -190,71 +215,158 @@ mcp__heurist-finance__fredmacroagent_macro_regime_context()
 Map result to macro panel (same mapping as parent skill). Include as a
 shared context bar or footer panel in the TUI layout.
 
+POST Phase 4 macro block after this phase completes. Include `"patch": true`
+and `"stage": "complete"`.
+
 ---
 
 ## Render Dispatch
 
-### TUI_READY — TUI Canvas
+### TUI_READY - TUI Canvas
 
 **Quick Status / Movers Only**:
 
-POST a single render using a `table` block — one row per ticker, sorted by
+POST a render using a `table` block - one row per ticker, sorted by
 `changePct` descending for Movers, or by `|changePct|` descending for Quick Status.
 
-```json
+**Phase 2 POST** (first render - no `patch` flag):
+
+```bash
+cat > /tmp/hf-render.json << 'EOF'
 {
   "action": "render",
+  "_state": {
+    "stage": "analyzing",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "watch",
+    "query": "<user-query>",
+    "tools": { "called": 6, "total": 9, "current": "quote_snapshot", "completed": ["resolve_symbol", "quote_snapshot"] }
+  },
   "blocks": [
-    { "divider": "WATCHLIST — QUICK STATUS" },
+    { "divider": "WATCHLIST - QUICK STATUS" },
     {
       "table": {
-        "headers": ["Symbol", "Name",            "Price",   "Chg %",  "Volume",  "vs 52W"],
-        "align":   ["left",   "left",             "right",   "right",  "right",   "right"],
+        "headers": ["Symbol", "Name",             "Price",   "Chg %",  "Volume",  "vs 52W"],
+        "align":   ["left",   "left",              "right",   "right",  "right",   "right"],
         "rows": [
           {
-            "cells": ["NVDA", "NVIDIA",   "$172.70", "+3.2%",  "45.0M",   "18%"],
+            "cells": ["NVDA", "NVIDIA",    "$172.70", "+3.2%",  "45.0M",   "18%"],
             "colors": { "3": "green" }
           },
           {
-            "cells": ["AAPL", "Apple",    "$211.50", "-0.8%",  "28.3M",   "54%"],
+            "cells": ["AAPL", "Apple",     "$211.50", "-0.8%",  "28.3M",   "54%"],
             "colors": { "3": "red" }
           },
           {
-            "cells": ["MSFT", "Microsoft","$415.20", "+0.4%",  "18.1M",   "62%"],
+            "cells": ["MSFT", "Microsoft", "$415.20", "+0.4%",  "18.1M",   "62%"],
             "colors": { "3": "green" }
           }
-        ]
-      }
-    },
-    { "spacer": 1 },
-    {
-      "panel": "macro",
-      "data": {
-        "pillars": [
-          "Inflation: STICKY ↓",
-          "Growth: SLOW ↓",
-          "Policy: TIGHT →"
         ]
       }
     }
   ]
 }
+EOF
+hf-post /tmp/hf-render.json
 ```
 
 `colors` key is the column index (0-based string). Use `"green"` for positive
 change %, `"red"` for negative.
 
-**Detailed Dashboard**:
+**Phase 4 POST** (macro footer - `patch: true`):
 
-POST a render with one `stack` per ticker (quote + technical + analyst), then
-a shared macro footer. Stack ticker columns vertically — no `row` wrapping
-(too many tickers to fit side-by-side).
-
-```json
+```bash
+cat > /tmp/hf-render.json << 'EOF'
 {
   "action": "render",
+  "patch": true,
+  "_state": {
+    "stage": "complete",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "watch",
+    "query": "<user-query>",
+    "tools": { "called": 9, "total": 9, "current": "macro_regime_context", "completed": ["resolve_symbol", "quote_snapshot", "macro_regime_context"] }
+  },
   "blocks": [
-    { "divider": "WATCHLIST — NVDA" },
+    { "spacer": 1 },
+    {
+      "panel": "macro",
+      "data": {
+        "pillars": [
+          { "pillar": "Inflation", "state": "STICKY",  "direction": "down" },
+          { "pillar": "Growth",    "state": "SLOWING", "direction": "down" },
+          { "pillar": "Policy",    "state": "TIGHT",   "direction": "flat" }
+        ]
+      }
+    }
+  ],
+  "follow_ups": [
+    "Deep dive on biggest mover?",
+    "Compare top movers head-to-head?",
+    "Add or remove a ticker?"
+  ]
+}
+EOF
+hf-post /tmp/hf-render.json
+```
+
+**Detailed Dashboard**:
+
+Stack ticker columns vertically - no `row` wrapping (too many tickers to
+fit side-by-side).
+
+**Phase 2 POST** (quote rows only - first render, no `patch` flag):
+
+```bash
+cat > /tmp/hf-render.json << 'EOF'
+{
+  "action": "render",
+  "_state": {
+    "stage": "analyzing",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "watch",
+    "query": "<user-query>",
+    "tools": { "called": 6, "total": 13, "current": "quote_snapshot", "completed": ["resolve_symbol", "quote_snapshot"] }
+  },
+  "blocks": [
+    { "divider": "WATCHLIST - NVDA" },
+    {
+      "row": [
+        { "panel": "quote", "data": { "symbol": "NVDA", "price": 172.7, "changePct": 3.2, "variant": "compact" }, "w": 1.0 }
+      ]
+    },
+    { "divider": "WATCHLIST - AAPL" },
+    {
+      "row": [
+        { "panel": "quote", "data": { "symbol": "AAPL", "price": 211.5, "changePct": -0.8, "variant": "compact" }, "w": 1.0 }
+      ]
+    }
+  ]
+}
+EOF
+hf-post /tmp/hf-render.json
+```
+
+**Phase 3 POST** (full detailed rows - `patch: true`, replaces quote-only rows):
+
+```bash
+cat > /tmp/hf-render.json << 'EOF'
+{
+  "action": "render",
+  "patch": true,
+  "_state": {
+    "stage": "analyzing",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "watch",
+    "query": "<user-query>",
+    "tools": { "called": 10, "total": 13, "current": "analyst_snapshot", "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot", "analyst_snapshot"] }
+  },
+  "blocks": [
+    { "divider": "WATCHLIST - NVDA" },
     {
       "row": [
         { "panel": "quote",     "data": { "symbol": "NVDA", "price": 172.7, "changePct": 3.2, "variant": "compact" }, "w": 0.5 },
@@ -262,41 +374,66 @@ a shared macro footer. Stack ticker columns vertically — no `row` wrapping
         { "panel": "analyst",   "data": { "buy": 55, "hold": 2, "sell": 0, "target": 269, "current": 172.7 }, "w": 0.25 }
       ]
     },
-    { "divider": "WATCHLIST — AAPL" },
+    { "divider": "WATCHLIST - AAPL" },
     {
       "row": [
         { "panel": "quote",     "data": { "symbol": "AAPL", "price": 211.5, "changePct": -0.8, "variant": "compact" }, "w": 0.5 },
         { "panel": "technical", "data": { "rsi": 52.3, "signals": ["NEUTRAL", "HOLD 54%"] }, "w": 0.25 },
         { "panel": "analyst",   "data": { "buy": 28, "hold": 8, "sell": 2, "target": 241, "current": 211.5 }, "w": 0.25 }
       ]
-    },
+    }
+  ]
+}
+EOF
+hf-post /tmp/hf-render.json
+```
+
+**Phase 4 POST** (macro footer - `patch: true`, `stage: complete`):
+
+```bash
+cat > /tmp/hf-render.json << 'EOF'
+{
+  "action": "render",
+  "patch": true,
+  "_state": {
+    "stage": "complete",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "watch",
+    "query": "<user-query>",
+    "tools": { "called": 13, "total": 13, "current": "macro_regime_context", "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot", "analyst_snapshot", "macro_regime_context"] }
+  },
+  "blocks": [
     { "divider": "MACRO" },
     {
       "panel": "macro",
       "data": {
         "pillars": [
-          { "pillar": "Inflation", "state": "STICKY",    "direction": "↓" },
-          { "pillar": "Growth",    "state": "SLOWING",   "direction": "↓" },
-          { "pillar": "Policy",    "state": "TIGHT",     "direction": "→" }
+          { "pillar": "Inflation", "state": "STICKY",  "direction": "down" },
+          { "pillar": "Growth",    "state": "SLOWING", "direction": "down" },
+          { "pillar": "Policy",    "state": "TIGHT",   "direction": "flat" }
         ]
       }
     }
+  ],
+  "follow_ups": [
+    "Deep dive on biggest mover?",
+    "Compare top movers head-to-head?",
+    "Add or remove a ticker?"
   ]
 }
+EOF
+hf-post /tmp/hf-render.json
 ```
 
-**Progressive rendering**: POST after Phase 2 with table rows only (no
-technical/analyst). POST again after Phase 3 with full detailed rows. POST
-macro block after Phase 4.
-
-### TUI_DOWN — Markdown Fallback
+### TUI_DOWN - Markdown Fallback
 
 Render a markdown summary in chat.
 
-**Quick Status / Movers Only** — a compact table:
+**Quick Status / Movers Only** - a compact table:
 
 ```
-## Watchlist — Quick Status  (as of 2026-03-21 14:32 ET)
+## Watchlist - Quick Status  (as of 2026-03-21 14:32 ET)
 
 | Symbol | Price  | Change %  | Volume    | vs 52W    |
 |--------|--------|-----------|-----------|-----------|
@@ -307,7 +444,7 @@ Render a markdown summary in chat.
 **Macro**: Inflation STICKY | Growth SLOWING | Policy TIGHT
 ```
 
-**Detailed Dashboard** — a section per ticker with sub-sections for quote,
+**Detailed Dashboard** - a section per ticker with sub-sections for quote,
 technicals, analyst, then a shared macro footer. Follow the parent skill's
 markdown formatting conventions (bold headers, tables, bullet signals).
 
@@ -315,14 +452,16 @@ markdown formatting conventions (bold headers, tables, bullet signals).
 
 ## Follow-up Loop
 
-After rendering, ASK:
+After rendering, lead with the summary finding - the mover worth watching or
+"quiet tape" if nothing stands out. Then offer next steps in your own voice.
+These are data-driven follow-ups, not a fixed menu.
 
-- **"Add a name to the list"** — prompt for symbol, validate via `resolve_symbol`, append to `~/.heurist/watchlist.json`, re-render
-- **"Drop a ticker"** — prompt for symbol (or list for selection), remove from file, re-render
-- **"[TICKER]'s interesting — full deep-dive?"** — route to `:analyst` sub-skill for the named ticker
-- **"Compare the top movers head-to-head"** — take the top N (≤ 5) tickers by `|changePct|`, route to `:pm`
-- **"Refresh — show me what changed"** — re-run Phases 2–4 for the current selection, POST updated render
-- **"Done"** — end the watchlist session
+Common directions:
+
+- A mover stands out → offer a full tearsheet → route to `:analyst`
+- The top movers warrant a head-to-head → route to `:pm` with the top N (≤ 5) by `|changePct|`
+- Watchlist management needed → add or remove tickers
+- A refresh is useful → re-run Phases 2–4, POST updated render
 
 ### Add ticker flow
 
@@ -356,8 +495,8 @@ follow its instructions with the ticker list pre-supplied.
 ## Watchlist File Contract
 
 - Path: `~/.heurist/watchlist.json`
-- Schema: `{ "tickers": string[] }` — uppercase symbols, no duplicates, order preserved
-- Max tickers: no hard limit, but warn if > 20 ("Large watchlist — consider using Movers Only view")
+- Schema: `{ "tickers": string[] }` - uppercase symbols, no duplicates, order preserved
+- Max tickers: no hard limit, but warn if > 20 ("Large watchlist - consider using Movers Only view")
 - Always write atomically: build the new JSON string, write to file in one operation
 - Never remove a ticker without explicit user confirmation
 
@@ -368,10 +507,10 @@ follow its instructions with the ticker list pre-supplied.
 1. **Load file first, every time.** Don't cache the watchlist across sessions.
 2. **Parallel by default.** All per-ticker MCP calls in Phases 1–3 run in parallel.
 3. **Skip failed tickers.** If `resolve_symbol` or `quote_snapshot` fails for a ticker, omit it from the render and note the failure briefly.
-4. **Macro is always shared.** Call `macro_regime_context` once, show it once — don't duplicate per ticker.
+4. **Macro is always shared.** Call `macro_regime_context` once, show it once - don't duplicate per ticker.
 5. **Never fabricate prices.** Every price, change %, or signal must come from an MCP response.
 6. **Phase 2 is the gate.** Do not render until Phase 2 is complete. Phases 3 and 4 augment but do not block the first render.
-7. **Movers threshold is advisory.** If the user explicitly asked for Movers Only and nothing qualifies, show the note and offer Quick Status — don't silently switch.
+7. **Movers threshold is advisory.** If the user explicitly asked for Movers Only and nothing qualifies, show the note and offer Quick Status - don't silently switch.
 
 ---
 
@@ -379,36 +518,47 @@ follow its instructions with the ticker list pre-supplied.
 
 When TUI is not running, output markdown in chat. Same data, same dashboard feel.
 
+Quick Status example:
+
 ```
 ▐██ **HEURIST FINANCE** · watch · 6 tickers
 
-## Watchlist — 2026-03-22 14:32 ET
+## Watchlist - 2026-03-22 14:32 ET
 
 > NVDA breaking below 200-day, watch `$165`. AAPL quiet. TSLA vol spike
-> on robotaxi timeline — noise until deliveries report.
+> on robotaxi timeline - noise until deliveries report.
 
-| Ticker | Price    | Change  | RSI  | Signal   | Alert              |
-|--------|----------|---------|------|----------|--------------------|
-| NVDA   | $172.93  | -3.5%   | 38.0 | SELL     | Below 200-day MA   |
-| AAPL   | $213.49  | +0.8%   | 52.3 | NEUTRAL  | —                  |
-| MSFT   | $428.12  | +0.3%   | 55.1 | NEUTRAL  | —                  |
-| TSLA   | $178.22  | -2.1%   | 41.8 | SELL     | Vol 2.3x avg       |
-| AMZN   | $198.34  | +1.2%   | 58.4 | BUY      | New 52W high       |
-| META   | $612.88  | -0.4%   | 48.9 | NEUTRAL  | —                  |
+| Ticker | Price    | Change  | Volume    | vs 52W    | Alert              |
+|--------|----------|---------|-----------|-----------|---------------------|
+| NVDA   | $172.93  | -3.5%   | 52.1M     | █░░░░ 18% | Below 200-day MA   |
+| AAPL   | $213.49  | +0.8%   | 28.3M     | ███░░ 54% | -                  |
+| MSFT   | $428.12  | +0.3%   | 18.1M     | ████░ 62% | -                  |
+| TSLA   | $178.22  | -2.1%   | 48.7M     | ██░░░ 41% | Vol 2.3x avg       |
+| AMZN   | $198.34  | +1.2%   | 31.2M     | ████░ 68% | New 52W high       |
+| META   | $612.88  | -0.4%   | 14.9M     | ███░░ 57% | -                  |
 
-*Prior: NVDA was BULL (Mar 15) — conviction changed*
+*Prior: NVDA was BULL (Mar 15) - conviction changed*
 
 **Macro** · Inflation STICKY · Growth SLOWING · Policy TIGHT
 
 ---
-*Claude Opus 4 · 14 tools · ~$0.10*
+*Claude Sonnet 4.6 · 14 tools · ~$0.10*
+```
+
+Detailed view adds RSI and Signal columns between Change and Volume:
+
+```
+| Ticker | Price    | Change  | RSI  | Signal   | Volume    | vs 52W    | Alert            |
+|--------|----------|---------|------|----------|-----------|-----------|------------------|
+| NVDA   | $172.93  | -3.5%   | 38.0 | SELL     | 52.1M     | █░░░░ 18% | Below 200-day MA |
+| AAPL   | $213.49  | +0.8%   | 52.3 | NEUTRAL  | 28.3M     | ███░░ 54% | -                |
 ```
 
 Rules:
-- Summary blockquote leads — flag the one or two movers worth watching.
+- Summary blockquote leads - flag the one or two movers worth watching.
 - Table is the primary data display. RSI and Signal columns only for
   Detailed view; omit for Quick Status.
-- Alert column: use `—` when nothing notable; name the specific condition
+- Alert column: use `-` when nothing notable; name the specific condition
   when it matters (volume, MA crossover, 52W level).
 - Prior conviction inline in table footer when session history exists.
 - Footer: model · tool count · estimated cost.
@@ -420,7 +570,7 @@ Rules:
 - MCP tool returns error → omit that ticker's row, note failure briefly
 - Symbol not found → skip ticker, tell user, suggest alternative
 - All Phase 2 tools fail → abort with error message, no empty render
-- Partial data → render what you have, mark missing columns as `—`
+- Partial data → render what you have, mark missing columns as `-`
 - TUI not responding → fall back to Research mode, continue analysis
 
 ---
@@ -450,7 +600,7 @@ Session file: `~/.heurist/sessions/{YYYY-MM-DD}-{NNN}.json`
   "tickers": ["{all tickers in watchlist analyzed}"],
   "sub_skill": "watch",
   "thesis": "{first 200 chars of summary blockquote}",
-  "conviction": "neutral",
+  "conviction": "{overall signal: bullish|bearish|neutral - derived from the majority signal across all analyzed tickers}",
   "model": "{model used}"
 }
 ```

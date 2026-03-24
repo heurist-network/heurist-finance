@@ -27,6 +27,7 @@ import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 import { startServer, emitter } from './server.js';
+import { logStateTransition } from './debugLog.js';
 import { setTheme } from '../src/index.js';
 
 // ── Module imports ──────────────────────────────────────────────────────────
@@ -86,6 +87,9 @@ function onRender(payload) {
     tui.agentState = payload._state;
     // Start/stop render animation based on stage transitions (#16)
     const stage = payload._state.stage;
+    if (stage !== prev) {
+      logStateTransition(prev ?? 'none', stage, payload._state.skill ?? 'unknown');
+    }
     if (stage === 'gathering' || stage === 'analyzing') {
       startRenderAnimation();
     } else {

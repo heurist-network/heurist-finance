@@ -112,6 +112,7 @@ export const schema = {
   },
 
   shape: 'object with { thesis, conviction, catalysts, risks, levels, timeframe }',
+  mcpTools: [],
 
   // ── Warn gates (v1.1) ──────────────────────────────────────────────────
   // Fields that SHOULD be present for a complete analysis.

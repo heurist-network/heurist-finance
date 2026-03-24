@@ -36,4 +36,5 @@ export const schema = {
     return data;
   },
   shape: 'object with { quarters: [{date, actual, estimate, surprise}] }',
+  mcpTools: ['yahoo.company_fundamentals'],
 };

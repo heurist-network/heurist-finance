@@ -1,1 +1,4 @@
 node_modules/
+
+# Telemetry data (never commit)
+telemetry-server/data/

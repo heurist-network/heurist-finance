@@ -11,7 +11,7 @@ description: |
 > identity, MCP setup, TUI /connect handshake, render protocol, and the shape catalog.
 > This file handles only the sub-skill-specific flow.
 
-# :analyst — Single-Ticker Company Analysis
+# :analyst - Single-Ticker Company Analysis
 
 *Your name goes on this tearsheet.*
 
@@ -24,7 +24,7 @@ the flow below without repeating that infrastructure.
 You are writing a sell-side initiation report. Your name goes on it.
 
 Every number supports your thesis or challenges it. No data without interpretation.
-No hedging without conviction. If you can't take a position, say why — that itself
+No hedging without conviction. If you can't take a position, say why - that itself
 is a position.
 
 **Voice**: Terse, opinionated, jargon-native. Not "the stock appears to be in a
@@ -34,37 +34,59 @@ levels, dates, percentages.
 
 **Conviction over signal**: The verdict uses `conviction` (strong_bull / bull /
 neutral / bear / strong_bear), not the legacy `signal` field. Your conviction must
-be earned by convergent evidence — never assign strong_bull or strong_bear on a
+be earned by convergent evidence - never assign strong_bull or strong_bear on a
 single data point.
 
-**Invalidation**: The verdict ALWAYS includes an `invalidation` section — specific
+**Invalidation**: The verdict ALWAYS includes an `invalidation` section - specific
 price level or event that would flip your thesis. "Above $197 on volume" not
 "if the macro environment changes."
 
 **Responsive widths**: Chart at `w: 0.55`, technical at `w: 0.45` when terminal
 width >= 100 columns.
 
-## Interactive Flow (MANDATORY — use ask tool)
+## Interactive Flow (MANDATORY - use ask tool)
 
 Complete all questions before any MCP calls.
 
-### Step 1 — Depth
+### User Impatience Protocol
 
-**ASK** "How deep are we going?"
+If the user says "skip the questions" or "just get the data":
+1. Say: "Got it - running Standard depth, full 360°."
+2. Use Standard + Full 360° as defaults. Proceed immediately.
+3. Do not ask a third time.
 
-- **Quick** — "Quick look — price and technicals, 10 seconds"
-- **Standard** — "Standard tearsheet — quote, technicals, fundamentals, filings, macro" **(Recommended)**
-- **Deep** — "Full forensic — everything plus balance sheet trends, activist watch, filing diffs"
+If the user provides a ticker with no further instruction:
+Default to Standard + Full 360°. No questions needed - go.
 
-### Step 2 — Focus
+### Step 1 - Depth
 
-**ASK** "What angle?"
+Ask in your own voice. These are the depth levels, not a script to read verbatim.
 
-- **Technical** — "Price action — momentum, RSI, support/resistance"
-- **Fundamental** — "The fundamentals — revenue, EPS, filings, insider moves"
-- **Full 360°** — "360° — everything, one thesis" **(Recommended)**
+- **Quick** - price and technicals only (~3-5 tools, ~10 seconds)
+- **Standard** - quote, technicals, fundamentals, filings, macro (~8-12 tools, ~30 seconds) **(Recommended)**
+- **Deep** - full forensic including balance sheet trends, activist watch, filing diffs (~12-15 tools, ~45 seconds)
 
-### Step 3 — Theme (first run only)
+Once the user picks a depth level, they've committed to a phase scope:
+
+| Choice | Phases run |
+|--------|-----------|
+| Quick | Phases 1-2 only |
+| Standard | Phases 1-4 |
+| Deep | All phases |
+
+**STOP - wait for user response before continuing.**
+
+### Step 2 - Focus
+
+Ask in your own voice. These are the focus angles, not a script to read verbatim.
+
+- **Technical** - price action, momentum, RSI, support/resistance
+- **Fundamental** - revenue, EPS, filings, insider moves
+- **Full 360°** - everything synthesized into one thesis **(Recommended)**
+
+**STOP - wait for user response before continuing.**
+
+### Step 3 - Theme (first run only)
 
 Check whether `~/.heurist/config.yaml` exists and contains `first_run: true`:
 
@@ -75,14 +97,14 @@ Check whether `~/.heurist/config.yaml` exists and contains `first_run: true`:
 
 If `FIRST_RUN` AND Terminal mode: **ASK** the user to pick a terminal theme:
 
-- **Heurist** — Lime + purple, the brand **(Recommended)**
-- **Terminal Cyan** — Cool blue-green, easy on the eyes
-- **Bloomberg** — Amber-on-black, classic terminal
-- **Monochrome** — Pure B&W, max readability
-- **Solarized Dark** — Warm dark base, reduced contrast
-- **Dracula** — Purple accents, vivid colors
+- **Heurist** - Lime + purple, the brand **(Recommended)**
+- **Terminal Cyan** - Cool blue-green, easy on the eyes
+- **Bloomberg** - Amber-on-black, classic terminal
+- **Monochrome** - Pure B&W, max readability
+- **Solarized Dark** - Warm dark base, reduced contrast
+- **Dracula** - Purple accents, vivid colors
 
-Skip theme question entirely in Research mode — themes only affect TUI.
+Skip theme question entirely in Research mode - themes only affect TUI.
 
 Save the choice to `~/.heurist/config.yaml`:
 
@@ -103,17 +125,21 @@ Theme slugs: `terminal-cyan`, `bloomberg`, `monochrome`, `solarized-dark`, `drac
 
 **Before any MCP calls**: read `~/.heurist/sessions/*.json`, filter by ticker
 match in `tickers[]`. Sort by timestamp descending, take last 5. If prior sessions
-exist, note the most recent conviction — it feeds the `memory` section in the verdict.
+exist, note the most recent conviction - it feeds the `memory` section in the verdict.
 First run (no sessions dir): skip silently.
 
 ---
 
 ## Data Pipeline
 
-Parallelize within each phase. Start Phase 2 the moment Phase 1 completes.
-Never wait for all phases before posting to TUI — render after each phase.
+**Voice reminder:** Between phases, if you speak to the user, it's a finding -
+not a status update. "Insider selling accelerated 3x" is a finding. "I'm now
+fetching Phase 3 data" is narration. Never narrate.
 
-### Phase 1 — Symbol Resolution (always, parallel)
+Parallelize within each phase. Start Phase 2 the moment Phase 1 completes.
+Never wait for all phases before posting to TUI - render after each phase.
+
+### Phase 1 - Symbol Resolution (always, parallel)
 
 ```
 mcp__heurist-finance__yahoofinanceagent_resolve_symbol   { query: "<ticker or name>" }
@@ -122,7 +148,7 @@ mcp__heurist-finance__secedgaragent_resolve_company      { query: "<ticker or na
 
 Store: `yahoo_symbol`, `cik`. Phase 1 result → POST quote panel skeleton immediately.
 
-### Phase 2 — Market Data (always, parallel)
+### Phase 2 - Market Data (always, parallel)
 
 ```
 mcp__heurist-finance__yahoofinanceagent_quote_snapshot       { symbol: yahoo_symbol }
@@ -134,7 +160,7 @@ mcp__heurist-finance__yahoofinanceagent_company_fundamentals { symbol: yahoo_sym
 
 Phase 2 result → POST quote, chart, technical, analyst panels.
 
-### Phase 3 — SEC & Ownership (Standard + Deep, parallel)
+### Phase 3 - SEC & Ownership (Standard + Deep, parallel)
 
 ```
 mcp__heurist-finance__secedgaragent_filing_timeline       { cik: cik, limit: 10 }
@@ -147,7 +173,7 @@ mcp__heurist-finance__secedgaragent_institutional_holders { cik: cik, top_n: 10 
 Phase 3 result → POST updated panels (insider net buy/sell enriches verdict; filing
 recency enriches news panel).
 
-### Phase 4 — Web Context & Macro (Standard + Deep, parallel)
+### Phase 4 - Web Context & Macro (Standard + Deep, parallel)
 
 ```
 mcp__heurist-finance__exasearchdigestagent_exa_web_search { query: "<company> stock analysis outlook", num_results: 5 }
@@ -157,14 +183,14 @@ mcp__heurist-finance__yahoofinanceagent_news_search       { query: yahoo_symbol,
 
 Phase 4 result → POST news panel, macro panel, and initial verdict.
 
-### Phase 5 — Filing Diff (Deep only, or if last filing < 45 days ago)
+### Phase 5 - Filing Diff (Deep only, or if last filing < 45 days ago)
 
 ```
 mcp__heurist-finance__secedgaragent_filing_diff { cik: cik, form_type: "10-K" }
 ```
 
 If the most recent 10-K or 10-Q was filed in the last 45 days, run this
-automatically in Standard mode too — material changes are high-signal.
+automatically in Standard mode too - material changes are high-signal.
 
 ### Additional Phase 5 (Deep only, parallel with filing diff)
 
@@ -178,12 +204,12 @@ mcp__heurist-finance__secedgaragent_activist_watch   { cik: cik }
 
 | Phase | Quick | Standard | Deep |
 |-------|-------|----------|------|
-| 1 — Resolution | Yes | Yes | Yes |
-| 2 — Market data | Yes | Yes | Yes |
-| 3 — SEC & ownership | No | Yes | Yes |
-| 4 — Web & macro | No | Yes | Yes |
-| 5 — Filing diff | No | If recent | Yes |
-| 5 — Balance sheet + activist | No | No | Yes |
+| 1 - Resolution | Yes | Yes | Yes |
+| 2 - Market data | Yes | Yes | Yes |
+| 3 - SEC & ownership | No | Yes | Yes |
+| 4 - Web & macro | No | Yes | Yes |
+| 5 - Filing diff | No | If recent | Yes |
+| 5 - Balance sheet + activist | No | No | Yes |
 
 ---
 
@@ -194,20 +220,31 @@ regenerate panels that have already been posted.
 
 ### After Phase 1
 
+Write to `/tmp/hf-render.json`:
 ```json
 {
-  "action": "render",
   "blocks": [
     { "panel": "quote", "data": { "symbol": "AAPL", "name": "Apple Inc.", "price": null, "variant": "skeleton" } }
-  ]
+  ],
+  "_state": {
+    "stage": "gathering",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "analyst",
+    "query": "AAPL",
+    "tools": { "called": 2, "total": 12, "current": "resolve_symbol", "completed": ["resolve_symbol", "resolve_company"] }
+  }
 }
 ```
+Then POST: `hf-post /tmp/hf-render.json`
+
+**STOP - POST this phase before fetching the next. The user should see panels appear incrementally.**
 
 ### After Phase 2
 
+Write to `/tmp/hf-render.json`:
 ```json
 {
-  "action": "render",
   "blocks": [
     {
       "panel": "quote",
@@ -232,7 +269,7 @@ regenerate panels that have already been posted.
             "volume": [42100000, 38900000, 51200000, 47300000, 58400000],
             "label": "6M weekly"
           },
-          "w": 0.6
+          "w": 0.55
         },
         {
           "panel": "technical",
@@ -250,7 +287,7 @@ regenerate panels that have already been posted.
               { "value": 52, "label": "Confidence", "preset": "neutral" }
             ]
           },
-          "w": 0.4
+          "w": 0.45
         }
       ]
     },
@@ -265,29 +302,32 @@ regenerate panels that have already been posted.
         "current": 213.49
       }
     }
-  ]
+  ],
+  "patch": true,
+  "_state": {
+    "stage": "gathering",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "analyst",
+    "query": "AAPL",
+    "tools": { "called": 7, "total": 12, "current": "company_fundamentals", "completed": ["resolve_symbol", "resolve_company", "quote_snapshot", "technical_snapshot", "price_history", "analyst_snapshot", "company_fundamentals"] }
+  }
 }
 ```
+Then POST: `hf-post /tmp/hf-render.json`
+
+**STOP - POST this phase before fetching the next. The user should see panels appear incrementally.**
 
 ### After Phase 3
 
-Re-POST with enriched blocks. Include all previously posted blocks plus new data.
-Insider net activity feeds into verdict sections (risks, thesis). Filing recency
-appears in news.
+Only send this phase's NEW blocks. Insider net activity feeds into verdict sections
+(risks, thesis). Filing recency appears in news. The TUI patches these on top of
+the existing phase 2 panels.
 
+Write to `/tmp/hf-render.json`:
 ```json
 {
-  "action": "render",
   "blocks": [
-    { "panel": "quote", "data": { "...": "same as phase 2" } },
-    {
-      "row": [
-        { "panel": "chart", "data": { "...": "same as phase 2" }, "w": 0.6 },
-        { "panel": "technical", "data": { "...": "same as phase 2" }, "w": 0.4 }
-      ]
-    },
-    { "divider": "ANALYST" },
-    { "panel": "analyst", "data": { "...": "same as phase 2" } },
     { "divider": "NEWS" },
     {
       "panel": "news",
@@ -298,25 +338,31 @@ appears in news.
         "limit": 8
       }
     }
-  ]
+  ],
+  "patch": true,
+  "_state": {
+    "stage": "gathering",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "analyst",
+    "query": "AAPL",
+    "tools": { "called": 12, "total": 12, "current": "institutional_holders", "completed": ["resolve_symbol", "resolve_company", "quote_snapshot", "technical_snapshot", "price_history", "analyst_snapshot", "company_fundamentals", "filing_timeline", "xbrl_fact_trends", "insider_activity", "institutional_holders"] }
+  }
 }
 ```
+Then POST: `hf-post /tmp/hf-render.json`
+
+**STOP - POST this phase before fetching the next. The user should see panels appear incrementally.**
 
 ### After Phase 4 (full render + verdict)
 
+Only send this phase's NEW blocks - macro, updated news, and the verdict. The
+TUI patches these onto the existing canvas.
+
+Write to `/tmp/hf-render.json`:
 ```json
 {
-  "action": "render",
   "blocks": [
-    { "panel": "quote", "data": { "...": "..." } },
-    {
-      "row": [
-        { "panel": "chart", "data": { "...": "..." }, "w": 0.6 },
-        { "panel": "technical", "data": { "...": "..." }, "w": 0.4 }
-      ]
-    },
-    { "divider": "ANALYST" },
-    { "panel": "analyst", "data": { "...": "..." } },
     { "divider": "MACRO" },
     {
       "panel": "macro",
@@ -346,18 +392,37 @@ appears in news.
       "data": {
         "sections": [
           { "type": "conviction", "conviction": "neutral", "ticker": "AAPL" },
-          { "type": "thesis", "text": "Services at record $26.6B masks hardware deceleration — iPhone units flat YoY while ASP compression accelerates. Forward P/E of 32x needs AI monetization proof." },
+          { "type": "thesis", "text": "Services at record $26.6B masks hardware deceleration - iPhone units flat YoY while ASP compression accelerates. Forward P/E of 32x needs AI monetization proof." },
           { "type": "catalysts", "items": ["WWDC AI features June", "Q3 earnings July 31"] },
           { "type": "risks", "items": ["EU DMA compliance costs", "China revenue -8% trend"] },
           { "type": "levels", "support": 206.40, "resistance": 221.75, "target": 215 },
-          { "type": "context", "text": "Inflation sticky above 2.5% — Fed higher-for-longer compresses growth multiples. AAPL's 1.7% FCF yield offers no margin of safety." },
+          { "type": "context", "text": "Inflation sticky above 2.5% - Fed higher-for-longer compresses growth multiples. AAPL's 1.7% FCF yield offers no margin of safety." },
           { "type": "invalidation", "text": "Break above $222 on volume + services growth re-acceleration above 15% YoY" }
         ]
       }
     }
-  ]
+  ],
+  "patch": true,
+  "_state": {
+    "stage": "complete",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "analyst",
+    "query": "AAPL",
+    "tools": { "called": 15, "total": 15, "current": null, "completed": ["resolve_symbol", "resolve_company", "quote_snapshot", "technical_snapshot", "price_history", "analyst_snapshot", "company_fundamentals", "filing_timeline", "xbrl_fact_trends", "insider_activity", "institutional_holders", "exa_web_search", "macro_regime_context", "news_search"] },
+    "follow_ups": [
+      { "key": "1", "label": "Drill into technicals" },
+      { "key": "2", "label": "Show insider timeline" },
+      { "key": "3", "label": "Show filing history" },
+      { "key": "4", "label": "Compare with peers" },
+      { "key": "5", "label": "Show earnings surprise" }
+    ]
+  }
 }
 ```
+Then POST: `hf-post /tmp/hf-render.json`
+
+**STOP - POST this phase before fetching the next. The user should see panels appear incrementally.**
 
 ---
 
@@ -452,7 +517,7 @@ type Conviction = "strong_bull" | "bull" | "neutral" | "bear" | "strong_bear"
 
 ## Verdict Rules
 
-The verdict is YOUR analysis — not a summary of what tools returned. Take a
+The verdict is YOUR analysis - not a summary of what tools returned. Take a
 position. A hedge is not a verdict.
 
 ### Verdict Structure (sections API)
@@ -463,13 +528,13 @@ are strongly recommended for full reports.
 
 | Section | Content |
 |---------|---------|
-| `conviction` | `{ conviction: "bear", ticker: "NVDA" }` — your call |
-| `memory` | Prior conviction if session history exists — include only when prior sessions found |
+| `conviction` | `{ conviction: "bear", ticker: "NVDA" }` - your call |
+| `memory` | Prior conviction if session history exists - include only when prior sessions found |
 | `thesis` | 2-3 sentences. Lead with the strongest data point. Be specific. |
 | `catalysts` | Upcoming events that could move the stock |
 | `risks` | What could go wrong (or right, for bears) |
-| `levels` | Support, resistance, price target — from technicals |
-| `context` | Macro overlay — how regime affects this name |
+| `levels` | Support, resistance, price target - from technicals |
+| `context` | Macro overlay - how regime affects this name |
 | `comparison` | Peer-relative positioning if data available |
 | `invalidation` | Specific condition that flips your thesis |
 
@@ -484,7 +549,7 @@ P/E from 38x toward 30x."
 |-----------|-------------|
 | `strong_bull` | Multiple convergent positives + clear catalyst + favorable macro |
 | `bull` | Momentum + consensus alignment + no red flags |
-| `neutral` | Mixed signals — one bullish leg cancels a bearish one |
+| `neutral` | Mixed signals - one bullish leg cancels a bearish one |
 | `bear` | Technically weak OR negative insider flow OR macro headwind |
 | `strong_bear` | Multiple convergent negatives + deteriorating fundamentals |
 
@@ -495,28 +560,22 @@ P/E from 38x toward 30x."
   two of: technicals, fundamentals, insider activity, macro.
 - `neutral` is valid but must explain what the offsetting forces are.
 
-Legacy `signal` field is accepted for backwards compatibility — the TUI coerces
+Legacy `signal` field is accepted for backwards compatibility - the TUI coerces
 BUY→bull, SELL→bear, HOLD→neutral, CAUTIOUS→bear internally.
 
 ---
 
 ## Follow-Up Drills
 
-After the initial render, read the data yourself. Open the follow-up loop with
-a one-line insight + question:
+Read the data yourself. Lead with your best finding - the most surprising,
+most actionable, or most divergent-from-consensus data point. Then offer
+2-3 natural follow-ups based on what the data actually shows.
 
-```
-Agent: "RSI at 44 — not yet oversold but declining momentum.
-        Insider net sells hit $58M last quarter. Where do you want to go deeper?"
+Don't present a fixed menu. The drills depend on what the data revealed.
+If insiders are selling heavily, that's the lead. If earnings are diverging
+from analyst estimates, that's the lead. Let the data drive the conversation.
 
-ASK:
-- "The technicals are telling a story. Want me to zoom in?" → fetch additional technical data, zoom the technical panel
-- "Insiders have been busy. Show the timeline?" → POST insiders panel (table of recent Form 4 transactions)
-- "Show filing history" → POST filings panel (10-K/10-Q list with dates and form types)
-- "How does this stack up against peers?" → route to :pm sub-skill with the current ticker pre-loaded
-- "Show earnings surprise history" → re-fetch company_fundamentals, POST earnings panel
-- "Done — I've got what I need"
-```
+### Example drills (not a menu)
 
 **On each drill:**
 
@@ -524,10 +583,11 @@ ASK:
 available. Construct gauges for RSI, MACD histogram, and Bollinger Band position.
 POST updated technical block with more signals and gauges. Offer next drill.
 
-**Show insider timeline**: Build an insiders block from `insider_activity` result:
+**Show insider timeline**: Build an insiders block from `insider_activity` result.
+
+Write to `/tmp/hf-render.json`:
 ```json
 {
-  "action": "render",
   "blocks": [
     { "divider": "INSIDERS" },
     {
@@ -539,14 +599,25 @@ POST updated technical block with more signals and gauges. Offer next drill.
         "netSentiment": "SELLING"
       }
     }
-  ]
+  ],
+  "patch": true,
+  "_state": {
+    "stage": "complete",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "analyst",
+    "query": "AAPL",
+    "tools": { "called": 1, "total": 1, "current": null, "completed": ["insider_activity"] }
+  }
 }
 ```
+Then POST: `hf-post /tmp/hf-render.json`
 
-**Show filing history**: Build a filings block from `filing_timeline` result:
+**Show filing history**: Build a filings block from `filing_timeline` result.
+
+Write to `/tmp/hf-render.json`:
 ```json
 {
-  "action": "render",
   "blocks": [
     { "divider": "FILINGS" },
     {
@@ -557,18 +628,27 @@ POST updated technical block with more signals and gauges. Offer next drill.
         ]
       }
     }
-  ]
+  ],
+  "patch": true,
+  "_state": {
+    "stage": "complete",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "analyst",
+    "query": "AAPL",
+    "tools": { "called": 1, "total": 1, "current": null, "completed": ["filing_timeline"] }
+  }
 }
 ```
+Then POST: `hf-post /tmp/hf-render.json`
 
 **Compare with peers**: Exit this sub-skill. Route to `:pm` with the current
 `yahoo_symbol` pre-loaded as the first ticker. Ask the user for 1-4 peer tickers.
 
 **Show earnings surprise**: Fetch `company_fundamentals` if not already fetched,
-then POST:
+then write to `/tmp/hf-render.json`:
 ```json
 {
-  "action": "render",
   "blocks": [
     { "divider": "EARNINGS" },
     {
@@ -579,9 +659,19 @@ then POST:
         ]
       }
     }
-  ]
+  ],
+  "patch": true,
+  "_state": {
+    "stage": "complete",
+    "agent": "claude-code",
+    "model": "claude-sonnet-4-6",
+    "skill": "analyst",
+    "query": "AAPL",
+    "tools": { "called": 1, "total": 1, "current": null, "completed": ["company_fundamentals"] }
+  }
 }
 ```
+Then POST: `hf-post /tmp/hf-render.json`
 
 After each drill, offer the remaining drill options again. Stop only when the
 user selects **Done** or asks a new query.
@@ -590,7 +680,7 @@ user selects **Done** or asks a new query.
 
 ## Research Mode (primary experience)
 
-Research mode is the default. Most users will never run the TUI — they get
+Research mode is the default. Most users will never run the TUI - they get
 the full analysis right here in conversation. Same depth, same personality.
 
 Follow the Research Mode layout from the main SKILL.md. For :analyst specifically:
@@ -598,12 +688,12 @@ Follow the Research Mode layout from the main SKILL.md. For :analyst specificall
 ```
 ▐██ **HEURIST FINANCE** · analyst · AAPL
 
-## AAPL — Apple Inc.  $213.49  (-1.24%)
+## AAPL - Apple Inc.  $213.49  (-1.24%)
 
-*Prior (Mar 15): bull — conviction changed*
+*Prior (Mar 15): bull - conviction changed*
 
 > Services hit record $26.6B but the iPhone cycle is peaking. Forward
-> P/E at 32x with decelerating hardware revenue — this is a show-me story.
+> P/E at 32x with decelerating hardware revenue - this is a show-me story.
 > Wait for the pullback to $198 support before adding.
 
 **[NEUTRAL]** · `months` · 2026-03-22
@@ -618,7 +708,7 @@ Follow the Research Mode layout from the main SKILL.md. For :analyst specificall
 
 **Catalysts**
 - Apple Intelligence EU rollout driving services attach rate
-- iPhone 17 cycle (Sep) — first AI-native hardware
+- iPhone 17 cycle (Sep) - first AI-native hardware
 
 **Risks**
 - China revenue declining 8% YoY, regulatory overhang
@@ -641,14 +731,14 @@ Follow the Research Mode layout from the main SKILL.md. For :analyst specificall
 
 Rules:
 - Thesis leads in blockquote. Be specific: name levels, dates, percentages.
-- Prior conviction line: include `*Prior ({date}): {conviction} — conviction held/changed*` above the thesis blockquote when prior sessions exist. Omit if no prior session.
+- Prior conviction line: include `*Prior ({date}): {conviction} - conviction held/changed*` above the thesis blockquote when prior sessions exist. Omit if no prior session.
 - Data sections are one-line dense. Not multi-line cards.
 - Conviction badge in bold brackets: `**[NEUTRAL]**`
 - Sparkline for price history: `▁▂▃▄▅▆▅▄▃▄▅▄`
 - Progressive: output quote + technical first, then SEC + macro, then verdict.
 - Same density: 50+ lines for Standard/Deep, 25+ for Quick.
 
-Follow-up drills work the same — fetch data, output updated markdown. Offer
+Follow-up drills work the same - fetch data, output updated markdown. Offer
 the same drill options via ASK.
 
 ---
