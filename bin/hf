@@ -1,0 +1,61 @@
+#!/bin/bash
+# bin/hf — Heurist Finance Terminal
+set -euo pipefail
+SKILL_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && cd .. && pwd)"
+VITE_NODE="${SKILL_DIR}/node_modules/.bin/vite-node"
+APP="${SKILL_DIR}/terminal/dist/app.mjs"
+STATE_FILE="${HOME}/.heurist/tui.json"
+
+# ── --update: pull latest from marketplace ──────────────────────────────────
+if [[ "${1:-}" == "--update" ]]; then
+  echo "▐██ Checking for updates..."
+  if command -v npx &>/dev/null; then
+    npx @heurist-network/skills update heurist-finance
+  else
+    echo "hf: npx not found. Run: npm install -g npm" >&2
+    exit 1
+  fi
+  exit 0
+fi
+
+# ── --version: show installed version ───────────────────────────────────────
+if [[ "${1:-}" == "--version" || "${1:-}" == "-v" ]]; then
+  PKG_VERSION=$(node -e "console.log(require('${SKILL_DIR}/package.json').version)" 2>/dev/null || echo "unknown")
+  echo "heurist-finance v${PKG_VERSION}"
+  exit 0
+fi
+
+# Ensure bundle exists
+if [[ ! -f "$APP" ]]; then
+  echo "hf: bundle not found. Run: cd ${SKILL_DIR} && npm run build" >&2
+  exit 1
+fi
+
+# Ensure deps (needed by screenshot mode)
+if [[ ! -x "$VITE_NODE" ]]; then
+  echo "hf: dependencies missing. Run: cd ${SKILL_DIR} && npm install" >&2
+  exit 1
+fi
+
+# ── --screenshot: render a demo frame to stdout/file ────────────────────────
+if [[ "${1:-}" == "--screenshot" ]]; then
+  shift
+  export HF_SCREENSHOT_WIDTH="${1:-120}"
+  # Second arg (optional): output file
+  if [[ -n "${2:-}" ]]; then
+    export HF_SCREENSHOT_OUTPUT="${2}"
+  fi
+  exec "$VITE_NODE" "${SKILL_DIR}/bin/screenshot.js"
+fi
+
+# Kill stale TUI if state file exists but process is dead
+if [[ -f "$STATE_FILE" ]]; then
+  PID=$(python3 -c "import sys,json; print(json.load(open('${STATE_FILE}')).get('pid',''))" 2>/dev/null || echo "")
+  if [[ -n "$PID" ]] && kill -0 "$PID" 2>/dev/null; then
+    echo "hf: terminal already running (PID ${PID}). Stop first: bin/stop.sh" >&2
+    exit 1
+  fi
+  rm -f "$STATE_FILE"
+fi
+
+exec node "$APP"

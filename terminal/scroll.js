@@ -1,0 +1,26 @@
+/**
+ * scroll.js — Scroll state management and mouse wheel handler.
+ *
+ * Manages scroll offset and SGR mouse wheel input for the live TUI phase.
+ */
+
+import { tui } from './state.js';
+import { paintWithScroll } from './render.js';
+
+// ── Mouse wheel handler ─────────────────────────────────────────────────────
+// SGR mode: \x1b[<64;col;rowM = wheel up, \x1b[<65;col;rowM = wheel down
+
+let _mouseInputActive = false;
+
+export function setupMouseWheel() {
+  if (_mouseInputActive) return;
+  _mouseInputActive = true;
+  process.stdin.on('data', (data) => {
+    const str = data.toString();
+    const match = str.match(/\x1b\[<(\d+);\d+;\d+[Mm]/);
+    if (!match || !tui.lastContent) return;
+    const btn = parseInt(match[1], 10);
+    if (btn === 64) { tui.scrollOffset = Math.max(0, tui.scrollOffset - 3); paintWithScroll(); }
+    else if (btn === 65) { tui.scrollOffset += 3; paintWithScroll(); }
+  });
+}

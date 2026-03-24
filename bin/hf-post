@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# hf-post — Post JSON to Heurist Finance TUI
+#
+# Usage:
+#   hf-post /tmp/render.json          # file argument (preferred)
+#   hf-post < payload.json            # pipe from file
+#   echo '{"action":"render",...}' | hf-post   # pipe from stdout
+#
+# For render action: payload file must contain the full render payload
+# (blocks, _state, meta, etc.). hf-post writes it to /tmp/hf-render.json
+# and sends {"action":"render","file":"/tmp/hf-render.json"} to the server.
+#
+# For other actions (focus, layout, clear): inline payloads are forwarded as-is.
+#
+# Reads TUI port from ~/.heurist/tui.json.
+
+set -euo pipefail
+
+STATE_FILE="${HOME}/.heurist/tui.json"
+
+if [ ! -f "$STATE_FILE" ]; then
+  echo "Error: TUI not running (no $STATE_FILE)" >&2
+  exit 1
+fi
+
+PORT=$(grep -o '"port":[[:space:]]*[0-9]*' "$STATE_FILE" | grep -o '[0-9]*')
+
+if [ -z "$PORT" ]; then
+  echo "Error: Could not read port from $STATE_FILE" >&2
+  exit 1
+fi
+
+# Check TUI is alive
+if ! curl -sf "http://127.0.0.1:${PORT}/health" > /dev/null 2>&1; then
+  echo "Error: TUI not responding on port $PORT" >&2
+  exit 1
+fi
+
+# Read payload from file argument or stdin
+if [ $# -ge 1 ] && [ -f "$1" ]; then
+  PAYLOAD=$(cat "$1")
+else
+  PAYLOAD=$(cat)
+fi
+
+# Extract action from payload
+ACTION=$(printf '%s' "$PAYLOAD" | grep -o '"action"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"' || true)
+
+# For render action: write full payload to /tmp/hf-render.json and send file reference
+if [ "$ACTION" = "render" ]; then
+  RENDER_FILE="/tmp/hf-render.json"
+  printf '%s' "$PAYLOAD" > "$RENDER_FILE"
+
+  # Extract agent field from original payload if present, to include in POST body
+  AGENT=$(printf '%s' "$PAYLOAD" | grep -o '"agent"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"' || true)
+
+  if [ -n "$AGENT" ]; then
+    POST_BODY="{\"action\":\"render\",\"agent\":\"${AGENT}\",\"file\":\"${RENDER_FILE}\"}"
+  else
+    POST_BODY="{\"action\":\"render\",\"file\":\"${RENDER_FILE}\"}"
+  fi
+
+  curl -sf "http://127.0.0.1:${PORT}/render" \
+    -H 'Content-Type: application/json' \
+    -d "$POST_BODY"
+else
+  # Other actions (focus, layout, clear): forward inline as-is
+  printf '%s' "$PAYLOAD" | curl -sf "http://127.0.0.1:${PORT}/render" \
+    -H 'Content-Type: application/json' \
+    -d @-
+fi
