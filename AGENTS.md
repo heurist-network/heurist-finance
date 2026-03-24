@@ -54,8 +54,3 @@ npx vitest run            # single run, no watch
 - `~/.heurist/sessions/` — agent memory (session records)
 - Terminal port: 7707
 - Bridge port: 3100 (override with `HEURIST_BRIDGE_PORT`)
-
-## Repos
-
-- **Dev:** `kays0x/heurist-finance` (private) — tests, GTM, internal docs
-- **Prod:** `heurist-network/heurist-finance` (public) — synced automatically via GitHub Actions on push to main
