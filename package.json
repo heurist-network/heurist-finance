@@ -1,0 +1,19 @@
+{
+  "name": "heurist-finance",
+  "version": "0.9.11",
+  "description": "Heurist Finance — agent-driven financial terminal for Heurist Mesh",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:update": "vitest run --update"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "esbuild": "^0.27.4"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.0"
+  }
+}
