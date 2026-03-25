@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/split-demo.gif" width="720" alt="Heurist Finance - agent + terminal side by side" />
+  <video src="docs/screenshots/split-demo.mp4" width="720" autoplay loop muted></video>
 </p>
 
 ---
