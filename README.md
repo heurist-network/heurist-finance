@@ -12,10 +12,13 @@
 </p>
 
 <p align="center">
-  <video width="720" controls autoplay muted loop playsinline poster="docs/screenshots/NVDA.png">
-    <source src="https://misc-files.heurist.xyz/split-demo.mp4" type="video/mp4" />
-    <a href="https://misc-files.heurist.xyz/split-demo.mp4">Open the demo video</a>
-  </video>
+  <a href="https://misc-files.heurist.xyz/split-demo.mp4">
+    <img src="docs/screenshots/demo.gif" width="720" alt="Heurist Finance product demo" />
+  </a>
+</p>
+
+<p align="center">
+  <strong><a href="https://misc-files.heurist.xyz/split-demo.mp4">Watch the 18-second product demo</a></strong>
 </p>
 
 ---
