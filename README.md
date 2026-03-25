@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/splash.png" width="720" alt="Heurist Finance - terminal splash screen" />
+  <img src="docs/screenshots/split-demo.gif" width="720" alt="Heurist Finance - agent + terminal side by side" />
 </p>
 
 ---
@@ -23,9 +23,45 @@ Ask about any stock, sector, or macro regime. Get a conviction note -
 thesis, evidence, falsifiers, verdict. The agent gathers the evidence.
 You make the call.
 
-<p align="center">
-  <img src="docs/screenshots/NVDA.png" width="720" alt="NVDA deep-dive dashboard" />
-</p>
+## Quick Start
+
+**Requirements:** Node.js 18+
+
+```bash
+npx @heurist-network/skills add finance
+```
+
+Open two panes - agent on one side, terminal on the other:
+
+```bash
+# Pane 1: the terminal
+hf
+
+# Pane 2: your agent
+/heurist-finance NVDA
+```
+
+The terminal lights up the moment the agent starts fetching. Panels build
+as data arrives.
+
+## The Desk
+
+Every seat takes a position.
+
+| Command | Analyst | What they do |
+|---------|---------|-------------|
+| `/analyst` | Senior Equity Analyst | Deep-dives, SEC filings, and the view that matters |
+| `/pm` | Portfolio Manager | Side-by-side conviction. 2-5 names, one winner |
+| `/strategist` | Chief Macro Strategist | Rates, inflation, growth - the regime behind the trade |
+| `/sector-head` | Sector Head | Rotations, thematics, and the names moving money |
+| `/desk` | Trading Desk | Market pulse. Everything that matters, fast |
+| `/risk` | Risk Analyst | Event impact. Catalyst timing. What could go wrong |
+| `/watch` | Watchlist Monitor | Your names. Tracked. Alerted. Conviction logged |
+
+Most AI finance tools hedge everything. *"The stock may be experiencing
+some downward pressure."* This desk doesn't do that. It says *"falling knife
+at RSI 38, wait for $120"* - and if you push back, it defends the call or
+updates it with the new evidence.
 
 ## What It Feels Like
 
@@ -46,9 +82,26 @@ Then: *"Insiders sold $58M last quarter. Want the timeline?"*
 You drill in. The desk stays in character. It remembers your last session's
 conviction and flags when the view has changed.
 
-## See It Work
+<p align="center">
+  <img src="docs/screenshots/NVDA.png" width="720" alt="NVDA deep-dive dashboard" />
+</p>
 
-No terminal needed. Drop `/heurist-finance NVDA` into your agent and get the research inline:
+## Terminal
+
+```bash
+hf
+```
+
+| Key | Action |
+|-----|--------|
+| `j`/`k` or up/down | Scroll |
+| `PgUp`/`PgDn` | Page jump |
+| `g`/`G` | Top / bottom |
+| `Tab` | Next panel |
+| `?` | Help overlay |
+| `q` | Return to splash / quit |
+
+Or skip the terminal. Drop `/heurist-finance NVDA` into your agent and get the research inline:
 
 ```
 **[BEAR]** - `months` - 2026-03-24
@@ -81,29 +134,6 @@ Above $197 on volume invalidates the bear case.
 
 Same data, same analysts, same conviction - whether you're in the terminal or reading markdown. The terminal adds progressive rendering and the Bloomberg feel. Research mode gives you the thesis right in your conversation.
 
-## The Desk
-
-Every seat takes a position.
-
-| Command | Analyst | What they do |
-|---------|---------|-------------|
-| `/analyst` | Senior Equity Analyst | Deep-dives, SEC filings, and the view that matters |
-| `/pm` | Portfolio Manager | Side-by-side conviction. 2-5 names, one winner |
-| `/strategist` | Chief Macro Strategist | Rates, inflation, growth - the regime behind the trade |
-| `/sector-head` | Sector Head | Rotations, thematics, and the names moving money |
-| `/desk` | Trading Desk | Market pulse. Everything that matters, fast |
-| `/risk` | Risk Analyst | Event impact. Catalyst timing. What could go wrong |
-| `/watch` | Watchlist Monitor | Your names. Tracked. Alerted. Conviction logged |
-
-Most AI finance tools hedge everything. *"The stock may be experiencing
-some downward pressure."* This desk doesn't do that. It says *"falling knife
-at RSI 38, wait for $120"* - and if you push back, it defends the call or
-updates it with the new evidence.
-
-Every query produces a position. The assumptions are visible. The evidence
-is inspectable. The desk remembers what it said last time - so when conviction
-changes, you know.
-
 ## Why This Exists
 
 Right now, your pre-trade research looks like this: TradingView for the chart,
@@ -124,25 +154,38 @@ and lives inside your agent stack.
 ## How It Works
 
 ```
-  You                  Heurist Finance               Heurist Mesh
-  +---------+          +----------------+             +----------+
-  |         |--query-->|  routes to     |--MCP tools->| Yahoo    |
-  |         |          |  sub-skill     |  in parallel| FRED     |
-  |         |<-panels--|  forms thesis  |<-real data--| SEC      |
-  |         |<-verdict-|  renders TUI   |             | Exa      |
-  +---------+          +----------------+             +----+-----+
-                                                           |
-                                                         more
-                                                        sources
-                                                        coming
+                        ┌─────────────────────────────────────────────┐
+                        │            Heurist Mesh (MCP)               │
+                        │                                             │
+  ┌──────────┐          │   ┌──────────┐  ┌──────────┐  ┌──────────┐  │
+  │          │  query   │   │  Yahoo   │  │   FRED   │  │   SEC    │  │
+  │  Claude  │────────▶ │   │ Finance  │  │  Macro   │  │  EDGAR   │  │
+  │  Code    │          │   └────┬─────┘  └────┬─────┘  └────┬─────┘  │
+  │  Codex   │          │        │             │             │        │ 
+  │ OpenCode │  panels  │   ┌────┴─────────────┴─────────────┴────┐   │
+  │          │◀──────── │   │         12-15 tools in parallel     │   │
+  └──────────┘  verdict │   └─────────────────────────────────────┘   │
+       │                │                                             │
+       ▼                │   ┌──────────┐                              │
+  ┌──────────┐          │   │   Exa    │                              │
+  │   TUI    │          │   │  Search  │                              │
+  │ 20 panel │          │   └──────────┘                              │
+  │   types  │          └─────────────────────────────────────────────┘
+  └──────────┘
 ```
 
-Heurist Finance is an MCP skill. It installs into Claude Code, Codex CLI,
-OpenCode, or any MCP-compatible host. The skill bridges your agent to
-[Heurist Mesh](https://mesh.heurist.ai) - a marketplace of MCP tools that
-handle the data plumbing.
+Heurist Finance is an **MCP skill**. One install, any agent. It connects your
+agent to [Heurist Mesh](https://mesh.heurist.ai) - a marketplace of MCP tools
+that handle the data plumbing.
 
-**Data sources** - fetched in real-time via MCP:
+| Layer | What it does |
+|-------|-------------|
+| **Prompt architecture** | 8 SKILL.md files route queries, enforce density contracts, anchor analyst voice |
+| **Schema coercion** | Normalizes messy agent output at the render boundary - any model works |
+| **Block engine** | Agent composes layouts freely - panels, rows, stacks, tables, gauges |
+| **Progressive rendering** | Patch-based streaming - panels build as data arrives, not all at once |
+
+**Data sources** - 25 tools, fetched in real-time via MCP:
 
 | Source | Coverage |
 |--------|----------|
@@ -150,61 +193,6 @@ handle the data plumbing.
 | **FRED** | CPI, PCE, Fed Funds, GDP, unemployment, macro regime context |
 | **SEC EDGAR** | Filings, XBRL financials, insider activity, institutional holders, activist watch |
 | **Exa Search** | Web search with LLM digest, URL scraping for deep context |
-
-The agent calls these tools in parallel, normalizes the data into
-schema-validated panels, and renders progressively - blocks appear as
-data arrives.
-
-## Quick Start
-
-**Requirements:** Node.js 18+
-
-```bash
-npx @heurist-network/skills add finance
-```
-
-That's it. The agent handles MCP setup on first run.
-
-Open two panes - agent on one side, terminal on the other:
-
-```bash
-# Pane 1: the terminal
-hf
-
-# Pane 2: your agent
-/heurist-finance NVDA
-```
-
-The terminal lights up the moment the agent starts fetching. Panels build
-as data arrives. This is the intended experience - watching the research
-assemble itself while the agent works.
-
-<p align="center">
-  <img src="docs/screenshots/connect.png" width="720" alt="Heurist Finance connected to Claude Code" />
-</p>
-
-**Terminal** - full-screen dashboard, progressive rendering. Use this when
-you want the Bloomberg feel: panels building as data arrives.
-
-**Research** - dense markdown note, delivered inline. Use this when you're
-mid-session, want to paste findings elsewhere, or just need the thesis.
-
-Same data, same analysts, same conviction. Different canvas.
-
-## Terminal
-
-```bash
-hf
-```
-
-| Key | Action |
-|-----|--------|
-| `j`/`k` or up/down | Scroll |
-| `PgUp`/`PgDn` | Page jump |
-| `g`/`G` | Top / bottom |
-| `Tab` | Next panel |
-| `?` | Help overlay |
-| `q` | Return to splash / quit |
 
 ## Community
 
