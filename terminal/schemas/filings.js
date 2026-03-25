@@ -33,5 +33,5 @@ export const schema = {
     return data;
   },
   shape: 'object with { filings: [{date, form, description}] }',
-  mcpTools: ['sec.filing_timeline'],
+  mcpTools: ['secedgaragent_filing_timeline'],
 };

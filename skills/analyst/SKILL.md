@@ -228,8 +228,8 @@ Write to `/tmp/hf-render.json`:
   ],
   "_state": {
     "stage": "gathering",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "analyst",
     "query": "AAPL",
     "tools": { "called": 2, "total": 12, "current": "resolve_symbol", "completed": ["resolve_symbol", "resolve_company"] }
@@ -306,8 +306,8 @@ Write to `/tmp/hf-render.json`:
   "patch": true,
   "_state": {
     "stage": "gathering",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "analyst",
     "query": "AAPL",
     "tools": { "called": 7, "total": 12, "current": "company_fundamentals", "completed": ["resolve_symbol", "resolve_company", "quote_snapshot", "technical_snapshot", "price_history", "analyst_snapshot", "company_fundamentals"] }
@@ -342,8 +342,8 @@ Write to `/tmp/hf-render.json`:
   "patch": true,
   "_state": {
     "stage": "gathering",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "analyst",
     "query": "AAPL",
     "tools": { "called": 12, "total": 12, "current": "institutional_holders", "completed": ["resolve_symbol", "resolve_company", "quote_snapshot", "technical_snapshot", "price_history", "analyst_snapshot", "company_fundamentals", "filing_timeline", "xbrl_fact_trends", "insider_activity", "institutional_holders"] }
@@ -405,8 +405,8 @@ Write to `/tmp/hf-render.json`:
   "patch": true,
   "_state": {
     "stage": "complete",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "analyst",
     "query": "AAPL",
     "tools": { "called": 15, "total": 15, "current": null, "completed": ["resolve_symbol", "resolve_company", "quote_snapshot", "technical_snapshot", "price_history", "analyst_snapshot", "company_fundamentals", "filing_timeline", "xbrl_fact_trends", "insider_activity", "institutional_holders", "exa_web_search", "macro_regime_context", "news_search"] },
@@ -603,8 +603,8 @@ Write to `/tmp/hf-render.json`:
   "patch": true,
   "_state": {
     "stage": "complete",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "analyst",
     "query": "AAPL",
     "tools": { "called": 1, "total": 1, "current": null, "completed": ["insider_activity"] }
@@ -632,8 +632,8 @@ Write to `/tmp/hf-render.json`:
   "patch": true,
   "_state": {
     "stage": "complete",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "analyst",
     "query": "AAPL",
     "tools": { "called": 1, "total": 1, "current": null, "completed": ["filing_timeline"] }
@@ -663,8 +663,8 @@ then write to `/tmp/hf-render.json`:
   "patch": true,
   "_state": {
     "stage": "complete",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "analyst",
     "query": "AAPL",
     "tools": { "called": 1, "total": 1, "current": null, "completed": ["company_fundamentals"] }

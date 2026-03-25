@@ -103,6 +103,17 @@ const PRESETS = {
       { from: 35, to: 80, role: 'negative', label: 'HIGH' },
     ],
   },
+  vix: {
+    min: 0,
+    max: 80,
+    zones: [
+      { from: 0, to: 15, role: 'positive', label: 'CALM' },
+      { from: 15, to: 25, role: 'data', label: '' },
+      { from: 25, to: 35, role: 'warning', label: 'ELEVATED' },
+      { from: 35, to: 50, role: 'negative', label: 'FEAR' },
+      { from: 50, to: 80, role: 'negative', label: 'EXTREME FEAR' },
+    ],
+  },
 };
 
 /**
@@ -206,6 +217,7 @@ function formatValue(v, preset) {
     case 'pe_ratio': return `${v.toFixed(1)}x`;
     case 'short_interest': return `${v.toFixed(1)}%`;
     case 'volatility': return v.toFixed(1);
+    case 'vix': return v.toFixed(1);
     default: return v.toFixed(1);
   }
 }

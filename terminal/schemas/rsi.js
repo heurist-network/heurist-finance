@@ -24,5 +24,5 @@ export const schema = {
     },
   },
   shape: 'object with { value: number }',
-  mcpTools: ['yahoo.technical_snapshot'],
+  mcpTools: ['yahoofinanceagent_technical_snapshot'],
 };

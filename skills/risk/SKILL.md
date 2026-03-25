@@ -217,8 +217,8 @@ Inline blocks are rejected with 400.
   "action": "render",
   "_state": {
     "stage": "gathering",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "risk",
     "query": "<user-query>",
     "tools": { "called": 3, "total": 12, "current": "resolve_symbol", "completed": ["exa_web_search", "exa_web_search"] }
@@ -256,8 +256,8 @@ Inline blocks are rejected with 400.
   "patch": true,
   "_state": {
     "stage": "gathering",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "risk",
     "query": "<user-query>",
     "tools": { "called": 8, "total": 12, "current": "technical_snapshot", "completed": ["exa_web_search", "exa_web_search", "resolve_symbol", "quote_snapshot", "price_history"] }
@@ -307,8 +307,8 @@ Inline blocks are rejected with 400.
   "patch": true,
   "_state": {
     "stage": "analyzing",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "risk",
     "query": "<user-query>",
     "tools": { "called": 10, "total": 12, "current": "macro_series_snapshot", "completed": ["exa_web_search", "exa_web_search", "resolve_symbol", "quote_snapshot", "price_history", "technical_snapshot", "macro_regime_context"] }
@@ -339,8 +339,8 @@ and including `"follow_ups"`:
   "patch": true,
   "_state": {
     "stage": "complete",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "risk",
     "query": "<user-query>",
     "tools": { "called": 10, "total": 10, "current": "macro_series_snapshot", "completed": ["exa_web_search", "exa_web_search", "resolve_symbol", "quote_snapshot", "price_history", "technical_snapshot", "macro_regime_context"] }
@@ -387,8 +387,8 @@ and including `"follow_ups"`:
   "patch": true,
   "_state": {
     "stage": "complete",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "risk",
     "query": "<user-query>",
     "tools": { "called": 12, "total": 12, "current": "insider_activity", "completed": ["exa_web_search", "exa_web_search", "resolve_symbol", "quote_snapshot", "price_history", "technical_snapshot", "macro_regime_context", "macro_series_snapshot", "filing_timeline"] }

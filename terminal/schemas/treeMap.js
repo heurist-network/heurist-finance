@@ -30,5 +30,5 @@ export const schema = {
   defaults: {
     height: 10,
   },
-  mcpTools: ['yahoo.fund_snapshot', 'yahoo.equity_screen'],
+  mcpTools: ['yahoofinanceagent_fund_snapshot', 'yahoofinanceagent_equity_screen'],
 };

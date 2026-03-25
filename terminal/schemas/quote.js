@@ -19,5 +19,5 @@ export const schema = {
     },
   },
   shape: 'object with { ticker }',
-  mcpTools: ['yahoo.quote_snapshot'],
+  mcpTools: ['yahoofinanceagent_quote_snapshot'],
 };

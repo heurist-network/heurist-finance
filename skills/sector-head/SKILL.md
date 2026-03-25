@@ -182,8 +182,8 @@ Write to `/tmp/hf-render.json`, then POST via `hf-post /tmp/hf-render.json`.
   "action": "render",
   "_state": {
     "stage": "gathering",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "sector-head",
     "query": "<user-query>",
     "tools": { "called": 3, "total": 12, "current": "macro_regime_context", "completed": ["exa_web_search", "market_overview"] }
@@ -216,8 +216,8 @@ The table block is ideal for sector constituent data. Use it here:
   "patch": true,
   "_state": {
     "stage": "gathering",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "sector-head",
     "query": "<user-query>",
     "tools": { "called": 8, "total": 12, "current": "analyst_snapshot", "completed": ["exa_web_search", "market_overview", "macro_regime_context", "equity_screen", "quote_snapshot", "price_history"] }
@@ -272,8 +272,8 @@ Include `"patch": true` - send only the NEW blocks added in this phase.
   "patch": true,
   "_state": {
     "stage": "analyzing",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "sector-head",
     "query": "<user-query>",
     "tools": { "called": 11, "total": 14, "current": "macro_series_snapshot", "completed": ["exa_web_search", "market_overview", "macro_regime_context", "equity_screen", "quote_snapshot", "analyst_snapshot", "price_history"] }
@@ -305,8 +305,8 @@ Include `"patch": true` - send only the NEW blocks added in this phase.
   "patch": true,
   "_state": {
     "stage": "complete",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "sector-head",
     "query": "<user-query>",
     "tools": { "called": 14, "total": 14, "current": "news_search", "completed": ["exa_web_search", "market_overview", "macro_regime_context", "equity_screen", "quote_snapshot", "analyst_snapshot", "price_history", "macro_series_snapshot"] }

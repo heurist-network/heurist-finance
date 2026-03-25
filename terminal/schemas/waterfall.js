@@ -33,5 +33,5 @@ export const schema = {
     return data;
   },
   shape: 'object with { items: [{label, value, previous?}] }',
-  mcpTools: ['sec.xbrl_fact_trends'],
+  mcpTools: ['secedgaragent_xbrl_fact_trends'],
 };

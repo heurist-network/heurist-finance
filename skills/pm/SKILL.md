@@ -170,8 +170,8 @@ Write this payload to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.js
   "action": "render",
   "_state": {
     "stage": "gathering",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "pm",
     "query": "<user-query>",
     "tools": { "called": 6, "total": 14, "current": "price_history", "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot"] }
@@ -218,8 +218,8 @@ Write to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
   "patch": true,
   "_state": {
     "stage": "gathering",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "pm",
     "query": "<user-query>",
     "tools": { "called": 12, "total": 14, "current": "analyst_snapshot", "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot", "price_history", "company_fundamentals"] }
@@ -260,8 +260,8 @@ Write to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
   "patch": true,
   "_state": {
     "stage": "complete",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "pm",
     "query": "<user-query>",
     "tools": { "called": 14, "total": 14, "current": "exa_web_search", "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot", "price_history", "company_fundamentals", "analyst_snapshot", "macro_regime_context"] },

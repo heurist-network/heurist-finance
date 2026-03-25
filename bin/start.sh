@@ -1,5 +1,5 @@
 #!/bin/bash
-# bin/start.sh — Launch the Heurist Finance TUI canvas + bridge server.
+# bin/start.sh — Launch the Heurist Finance TUI canvas.
 #
 # Usage: bin/start.sh
 #

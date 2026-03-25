@@ -35,10 +35,6 @@ export const LIME_M = '\x1b[38;2;127;191;0m';  // #7FBF00 mid lime
 // TODO(marketplace): replace with live check via @heurist-network/skills registry
 export const VERSION = { current: PKG_VERSION, latest: PKG_VERSION, upToDate: true };
 
-// ── Network ─────────────────────────────────────────────────────────────────
-
-export const BRIDGE_URL = 'http://127.0.0.1:3100';
-
 // ── Paths ───────────────────────────────────────────────────────────────────
 
 export const REPORTS_DIR = path.join(os.homedir(), '.heurist', 'reports');

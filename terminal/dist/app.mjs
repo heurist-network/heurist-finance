@@ -103,7 +103,7 @@ var init_quote = __esm({
         }
       },
       shape: "object with { ticker }",
-      mcpTools: ["yahoo.quote_snapshot"]
+      mcpTools: ["yahoofinanceagent_quote_snapshot"]
     };
   }
 });
@@ -135,7 +135,7 @@ var init_chart = __esm({
         return data;
       },
       shape: "object with { values: number[] }",
-      mcpTools: ["yahoo.price_history", "fred.macro_series_history", "fred.macro_vintage_history", "sec.xbrl_fact_trends"]
+      mcpTools: ["yahoofinanceagent_price_history", "fredmacroagent_macro_series_history", "fredmacroagent_macro_vintage_history", "secedgaragent_xbrl_fact_trends"]
     };
   }
 });
@@ -183,7 +183,7 @@ var init_technical = __esm({
         }
       },
       shape: "object with optional { rsi, macd, trend, signals, gauges }",
-      mcpTools: ["yahoo.technical_snapshot"]
+      mcpTools: ["yahoofinanceagent_technical_snapshot"]
     };
   }
 });
@@ -213,7 +213,7 @@ var init_rsi = __esm({
         }
       },
       shape: "object with { value: number }",
-      mcpTools: ["yahoo.technical_snapshot"]
+      mcpTools: ["yahoofinanceagent_technical_snapshot"]
     };
   }
 });
@@ -247,7 +247,7 @@ var init_analyst = __esm({
         return data;
       },
       shape: "object with { ratings: {buy, hold, sell}, priceTarget: {current, low, median, high} }",
-      mcpTools: ["yahoo.analyst_snapshot"]
+      mcpTools: ["yahoofinanceagent_analyst_snapshot"]
     };
   }
 });
@@ -316,7 +316,7 @@ var init_macro = __esm({
         return data;
       },
       shape: "object with { pillars: [{label, value, direction}] }",
-      mcpTools: ["fred.macro_regime_context", "yahoo.market_overview"]
+      mcpTools: ["fredmacroagent_macro_regime_context", "yahoofinanceagent_market_overview"]
     };
   }
 });
@@ -354,7 +354,7 @@ var init_news = __esm({
         }
       },
       shape: "object with { items: [{title, source, time, url}] }",
-      mcpTools: ["yahoo.news_search", "exa.exa_web_search", "fred.macro_release_calendar"]
+      mcpTools: ["yahoofinanceagent_news_search", "exasearchdigestagent_exa_web_search", "fredmacroagent_macro_release_calendar"]
     };
   }
 });
@@ -490,7 +490,7 @@ var init_gauge = __esm({
         }
       },
       shape: "object with { value: number }",
-      mcpTools: ["fred.macro_series_snapshot"]
+      mcpTools: ["fredmacroagent_macro_series_snapshot"]
     };
   }
 });
@@ -521,7 +521,7 @@ var init_gauges = __esm({
         return data;
       },
       shape: "object with { items: [{value, label, preset}] }",
-      mcpTools: ["fred.macro_series_snapshot"]
+      mcpTools: ["fredmacroagent_macro_series_snapshot"]
     };
   }
 });
@@ -583,7 +583,7 @@ var init_treeMap = __esm({
       defaults: {
         height: 10
       },
-      mcpTools: ["yahoo.fund_snapshot", "yahoo.equity_screen"]
+      mcpTools: ["yahoofinanceagent_fund_snapshot", "yahoofinanceagent_equity_screen"]
     };
   }
 });
@@ -661,7 +661,7 @@ var init_insiders = __esm({
         return data;
       },
       shape: "object with { transactions: [{date, name, type, shares, amount}] }",
-      mcpTools: ["sec.insider_activity"]
+      mcpTools: ["secedgaragent_insider_activity"]
     };
   }
 });
@@ -695,7 +695,7 @@ var init_earnings = __esm({
         return data;
       },
       shape: "object with { quarters: [{date, actual, estimate, surprise}] }",
-      mcpTools: ["yahoo.company_fundamentals"]
+      mcpTools: ["yahoofinanceagent_company_fundamentals"]
     };
   }
 });
@@ -727,7 +727,7 @@ var init_holders = __esm({
         return data;
       },
       shape: "object with { holders: [{name, shares, percent}] }",
-      mcpTools: ["sec.institutional_holders", "yahoo.fund_snapshot"]
+      mcpTools: ["secedgaragent_institutional_holders", "yahoofinanceagent_fund_snapshot"]
     };
   }
 });
@@ -759,7 +759,7 @@ var init_filings = __esm({
         return data;
       },
       shape: "object with { filings: [{date, form, description}] }",
-      mcpTools: ["sec.filing_timeline"]
+      mcpTools: ["secedgaragent_filing_timeline"]
     };
   }
 });
@@ -840,7 +840,7 @@ var init_candlestick = __esm({
         return data;
       },
       shape: "object with { bars: [{open, high, low, close, volume}] }",
-      mcpTools: ["yahoo.price_history"]
+      mcpTools: ["yahoofinanceagent_price_history"]
     };
   }
 });
@@ -872,7 +872,7 @@ var init_waterfall = __esm({
         return data;
       },
       shape: "object with { items: [{label, value, previous?}] }",
-      mcpTools: ["sec.xbrl_fact_trends"]
+      mcpTools: ["secedgaragent_xbrl_fact_trends"]
     };
   }
 });
@@ -2340,6 +2340,17 @@ var PRESETS = {
       { from: 25, to: 35, role: "warning", label: "ELEVATED" },
       { from: 35, to: 80, role: "negative", label: "HIGH" }
     ]
+  },
+  vix: {
+    min: 0,
+    max: 80,
+    zones: [
+      { from: 0, to: 15, role: "positive", label: "CALM" },
+      { from: 15, to: 25, role: "data", label: "" },
+      { from: 25, to: 35, role: "warning", label: "ELEVATED" },
+      { from: 35, to: 50, role: "negative", label: "FEAR" },
+      { from: 50, to: 80, role: "negative", label: "EXTREME FEAR" }
+    ]
   }
 };
 function gaugeBar(opts) {
@@ -2411,6 +2422,8 @@ function formatValue(v, preset) {
     case "short_interest":
       return `${v.toFixed(1)}%`;
     case "volatility":
+      return v.toFixed(1);
+    case "vix":
       return v.toFixed(1);
     default:
       return v.toFixed(1);
@@ -3601,7 +3614,6 @@ var RESET2 = "\x1B[0m";
 var LIME_D = "\x1B[38;2;61;122;0m";
 var LIME_M = "\x1B[38;2;127;191;0m";
 var VERSION2 = { current: PKG_VERSION, latest: PKG_VERSION, upToDate: true };
-var BRIDGE_URL = "http://127.0.0.1:3100";
 var REPORTS_DIR = path3.join(os3.homedir(), ".heurist", "reports");
 var PANEL_NAMES_SET = /* @__PURE__ */ new Set([
   "quote",
@@ -4309,6 +4321,24 @@ function renderRow(children, width, gap = 2) {
     const { w: _w, ...childWithoutW } = child;
     return renderBlock(childWithoutW, resolvedWidths[i]);
   });
+  const summaryLineCounts = rendered.map((str) => {
+    const lines = str.split("\n");
+    let count = 0;
+    for (const line of lines) {
+      if (strip(line).startsWith("\u2504")) count++;
+      else break;
+    }
+    return count;
+  });
+  const maxSummaryLines = Math.max(...summaryLineCounts);
+  if (maxSummaryLines > 0) {
+    for (let i = 0; i < rendered.length; i++) {
+      const pad = maxSummaryLines - summaryLineCounts[i];
+      if (pad > 0) {
+        rendered[i] = "\n".repeat(pad) + rendered[i];
+      }
+    }
+  }
   let result = rendered[0];
   for (let i = 1; i < rendered.length; i++) {
     result = sideBySide(result, rendered[i], resolvedWidths[i - 1], resolvedWidths[i], gap);
@@ -4761,38 +4791,37 @@ function setupMouseWheel() {
 import http2 from "http";
 import fs3 from "fs";
 import path4 from "path";
-function httpGet(url) {
-  return new Promise((resolve, reject) => {
-    const req = http2.get(url, { timeout: 3e3 }, (res) => {
-      let data = "";
-      res.on("data", (c2) => {
-        data += c2;
-      });
-      res.on("end", () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch {
-          resolve(data);
-        }
-      });
-    });
-    req.on("error", reject);
-    req.on("timeout", () => {
-      req.destroy();
-      reject(new Error("timeout"));
-    });
-  });
-}
 async function healthCheck() {
-  let bridgeUp = false;
+  const MCP_URL = "https://mesh.heurist.xyz/mcp/heurist-finance";
+  let mcpUp = false;
   try {
-    const health = await httpGet(`${BRIDGE_URL}/health`);
-    bridgeUp = health?.status === "ok";
+    const https2 = await import("https");
+    mcpUp = await new Promise((resolve) => {
+      const payload = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "hf-tui", version: "1.0.0" } } });
+      const req = https2.request(MCP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json, text/event-stream", "Content-Length": Buffer.byteLength(payload) },
+        timeout: 5e3
+      }, (res) => {
+        let data = "";
+        res.on("data", (c2) => {
+          data += c2;
+        });
+        res.on("end", () => resolve(res.statusCode >= 200 && res.statusCode < 300));
+      });
+      req.on("error", () => resolve(false));
+      req.on("timeout", () => {
+        req.destroy();
+        resolve(false);
+      });
+      req.write(payload);
+      req.end();
+    });
   } catch {
-    bridgeUp = false;
+    mcpUp = false;
   }
-  if (bridgeUp) {
-    emitter.emit("_splash", { msg: "Waiting for agent \xB7 MCP ready \xB7 25 tools" });
+  if (mcpUp) {
+    emitter.emit("_splash", { msg: "Waiting for agent \xB7 MCP ready" });
   } else {
     emitter.emit("_splash", { msg: "Waiting for agent \xB7 MCP offline" });
   }

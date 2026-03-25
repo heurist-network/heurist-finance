@@ -189,6 +189,29 @@ function renderRow(children, width, gap = 2) {
     return renderBlock(childWithoutW, resolvedWidths[i]);
   });
 
+  // Align content below the longest summary/annotation prefix.
+  // Summary lines start with '┄' (from renderSummary). Count leading summary
+  // lines in each child, then pad shorter children so content starts at the
+  // same vertical position.
+  const summaryLineCounts = rendered.map(str => {
+    const lines = str.split('\n');
+    let count = 0;
+    for (const line of lines) {
+      if (strip(line).startsWith('┄')) count++;
+      else break;
+    }
+    return count;
+  });
+  const maxSummaryLines = Math.max(...summaryLineCounts);
+  if (maxSummaryLines > 0) {
+    for (let i = 0; i < rendered.length; i++) {
+      const pad = maxSummaryLines - summaryLineCounts[i];
+      if (pad > 0) {
+        rendered[i] = '\n'.repeat(pad) + rendered[i];
+      }
+    }
+  }
+
   // Merge horizontally
   let result = rendered[0];
   for (let i = 1; i < rendered.length; i++) {

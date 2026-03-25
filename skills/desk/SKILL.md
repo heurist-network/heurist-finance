@@ -113,8 +113,8 @@ Write to `/tmp/hf-render.json`:
   ],
   "_state": {
     "stage": "complete",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "desk",
     "query": "NVDA",
     "tools": { "called": 3, "total": 3, "current": null, "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot"] },
@@ -149,8 +149,8 @@ Write to `/tmp/hf-render.json`:
   ],
   "_state": {
     "stage": "complete",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "desk",
     "query": "market pulse",
     "tools": { "called": 2, "total": 2, "current": null, "completed": ["market_overview", "macro_regime_context"] },

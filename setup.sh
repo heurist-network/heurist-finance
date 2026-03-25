@@ -7,7 +7,7 @@ set -euo pipefail
 # Paths
 # ---------------------------------------------------------------------------
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MCP_SSE_URL="https://mcp.mesh.heurist.xyz/toolaac6abd2/sse"
+MCP_URL="https://mesh.heurist.xyz/mcp/heurist-finance"
 HEURIST_DIR="${HOME}/.heurist"
 REPORTS_DIR="${HOME}/.agents/reports"
 CC_MCP_JSON="${HOME}/.mcp.json"
@@ -103,7 +103,7 @@ fi
 # ---------------------------------------------------------------------------
 step 2 "Installing dependencies"
 
-if [ -d "${SKILL_DIR}/node_modules/@modelcontextprotocol" ]; then
+if [ -d "${SKILL_DIR}/node_modules" ]; then
   ok "Dependencies already installed (node_modules present)"
 else
   info "Running npm install --production in ${SKILL_DIR}"
@@ -116,6 +116,40 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Helper: resolve API key
+# ---------------------------------------------------------------------------
+# Priority: config.yaml > HEURIST_API_KEY env var > prompt user
+resolve_api_key() {
+  local config_file="${HEURIST_DIR}/config.yaml"
+
+  # 1. Check config.yaml
+  if [ -f "$config_file" ]; then
+    local key
+    key="$(grep -E '^api_key:' "$config_file" 2>/dev/null | sed 's/^api_key:[[:space:]]*//' | tr -d '"'"'" || true)"
+    if [ -n "$key" ]; then
+      echo "$key"
+      return 0
+    fi
+  fi
+
+  # 2. Check env var
+  if [ -n "${HEURIST_API_KEY:-}" ]; then
+    echo "${HEURIST_API_KEY}"
+    return 0
+  fi
+
+  # 3. Prompt user
+  printf "\n  ${BOLD}Heurist API key required.${RESET}\n"
+  printf "  Get one at ${BRAND}https://heurist.ai/credits${RESET}\n\n"
+  printf "  ${BOLD}API key:${RESET} "
+  read -r key
+  if [ -z "$key" ]; then
+    return 1
+  fi
+  echo "$key"
+}
+
+# ---------------------------------------------------------------------------
 # Helper: JSON manipulation (prefer jq, fall back to python3)
 # ---------------------------------------------------------------------------
 HAS_JQ=false
@@ -123,57 +157,8 @@ if command -v jq &>/dev/null; then
   HAS_JQ=true
 fi
 
-# Add heurist-finance SSE entry to a JSON config file.
-# Usage: inject_mcp_entry <file> <agent-label>
-inject_mcp_entry() {
-  local file="$1"
-  local label="$2"
-
-  if [ ! -f "$file" ]; then
-    info "Creating ${file}"
-    echo '{}' > "$file"
-  fi
-
-  # Check if already present
-  if $HAS_JQ; then
-    if jq -e '.mcpServers["heurist-finance"]' "$file" &>/dev/null; then
-      ok "heurist-finance already configured in ${file}"
-      return 0
-    fi
-    # Inject
-    local tmp
-    tmp="$(mktemp)"
-    jq '.mcpServers |= (. // {}) | .mcpServers["heurist-finance"] = {"type":"sse","url":"'"${MCP_SSE_URL}"'"}' \
-      "$file" > "$tmp" && mv "$tmp" "$file"
-    ok "Added heurist-finance SSE entry to ${file} (${label})"
-  else
-    # python3 fallback
-    if python3 - <<PYEOF
-import json, sys
-with open('${file}') as f:
-    data = json.load(f)
-if data.get('mcpServers', {}).get('heurist-finance'):
-    sys.exit(1)  # already present
-sys.exit(0)
-PYEOF
-    then
-      python3 - <<PYEOF
-import json
-with open('${file}') as f:
-    data = json.load(f)
-data.setdefault('mcpServers', {})['heurist-finance'] = {'type': 'sse', 'url': '${MCP_SSE_URL}'}
-with open('${file}', 'w') as f:
-    json.dump(data, f, indent=2)
-PYEOF
-      ok "Added heurist-finance SSE entry to ${file} (${label})"
-    else
-      ok "heurist-finance already configured in ${file}"
-    fi
-  fi
-}
-
 # ---------------------------------------------------------------------------
-# 3. Detect agent and inject MCP config
+# 3. Detect agent, get API key, inject MCP config
 # ---------------------------------------------------------------------------
 step 3 "Detecting agent"
 
@@ -191,10 +176,6 @@ elif [ ${#AGENTS[@]} -eq 0 ]; then
 elif [ ${#AGENTS[@]} -eq 1 ]; then
   DETECTED_AGENT="${AGENTS[0]}"
 else
-  # Multiple agents installed — infer from session context:
-  # 1. CLAUDE_CODE env var → Claude Code is the active session
-  # 2. Parent process name heuristic
-  # 3. Default to claude-code (most common)
   if [ -n "${CLAUDE_CODE:-}" ]; then
     DETECTED_AGENT="claude-code"
   elif ps -o comm= -p "$PPID" 2>/dev/null | grep -qi "opencode"; then
@@ -209,20 +190,51 @@ fi
 
 info "Detected agent: ${DETECTED_AGENT}"
 
+# Resolve API key (needed for all agents)
+API_KEY="$(resolve_api_key)" || true
+if [ -z "${API_KEY:-}" ]; then
+  warn "No API key provided. MCP tools will require authentication."
+  warn "Set HEURIST_API_KEY env var or add api_key to ~/.heurist/config.yaml"
+fi
+
 case "$DETECTED_AGENT" in
   claude-code)
     if [ -f "${CC_MCP_JSON}" ] && ($HAS_JQ && jq -e '.mcpServers["heurist-finance"]' "$CC_MCP_JSON" &>/dev/null); then
       ok "heurist-finance already configured in ${CC_MCP_JSON}"
     else
       printf "\n  ${BOLD}Claude Code detected.${RESET}\n"
-      printf "  This will add the Heurist Mesh MCP server to %s\n\n" "${CC_MCP_JSON}"
+      printf "  This will add the Heurist MCP server to %s\n\n" "${CC_MCP_JSON}"
       printf "  ${BOLD}Configure MCP now? [Y/n]${RESET} "
       read -r REPLY
       if [[ "$REPLY" =~ ^[Nn] ]]; then
         warn "Skipped. Add manually to ${CC_MCP_JSON}:"
-        printf '    {"mcpServers":{"heurist-finance":{"type":"sse","url":"%s"}}}\n\n' "${MCP_SSE_URL}"
+        printf '    {"mcpServers":{"heurist-finance":{"type":"streamable-http","url":"%s","headers":{"Authorization":"Bearer %s"}}}}\n\n' "${MCP_URL}" "${API_KEY:-<your-key>}"
       else
-        inject_mcp_entry "${CC_MCP_JSON}" "Claude Code"
+        if [ ! -f "$CC_MCP_JSON" ]; then
+          info "Creating ${CC_MCP_JSON}"
+          echo '{}' > "$CC_MCP_JSON"
+        fi
+        if $HAS_JQ; then
+          local tmp
+          tmp="$(mktemp)"
+          jq --arg url "$MCP_URL" --arg key "${API_KEY:-}" \
+            '.mcpServers |= (. // {}) | .mcpServers["heurist-finance"] = {"type":"streamable-http","url":$url,"headers":{"Authorization":("Bearer " + $key)}}' \
+            "$CC_MCP_JSON" > "$tmp" && mv "$tmp" "$CC_MCP_JSON"
+        else
+          python3 - <<PYEOF
+import json
+with open('${CC_MCP_JSON}') as f:
+    data = json.load(f)
+data.setdefault('mcpServers', {})['heurist-finance'] = {
+    'type': 'streamable-http',
+    'url': '${MCP_URL}',
+    'headers': {'Authorization': 'Bearer ${API_KEY:-}'}
+}
+with open('${CC_MCP_JSON}', 'w') as f:
+    json.dump(data, f, indent=2)
+PYEOF
+        fi
+        ok "Added heurist-finance to ${CC_MCP_JSON} (Claude Code)"
       fi
     fi
     ;;
@@ -231,13 +243,12 @@ case "$DETECTED_AGENT" in
       ok "heurist-finance already configured in ${OC_CONFIG_JSON}"
     else
       printf "\n  ${BOLD}OpenCode detected.${RESET}\n"
-      printf "  OpenCode connects via the MCP bridge at localhost:3100.\n"
       printf "  This will add heurist-finance to %s\n\n" "${OC_CONFIG_JSON}"
       printf "  ${BOLD}Configure MCP now? [Y/n]${RESET} "
       read -r REPLY
       if [[ "$REPLY" =~ ^[Nn] ]]; then
         warn "Skipped. Add manually to ${OC_CONFIG_JSON}:"
-        printf '    "mcp": {"heurist-finance": {"type": "remote", "url": "http://localhost:3100/mcp"}}\n\n'
+        printf '    "mcp": {"heurist-finance": {"type": "remote", "url": "%s", "headers": {"Authorization": "Bearer %s"}}}\n\n' "${MCP_URL}" "${API_KEY:-<your-key>}"
       else
         mkdir -p "$(dirname "${OC_CONFIG_JSON}")"
         if [ ! -f "$OC_CONFIG_JSON" ]; then
@@ -246,20 +257,24 @@ case "$DETECTED_AGENT" in
         if $HAS_JQ; then
           local tmp
           tmp="$(mktemp)"
-          jq '.mcp |= (. // {}) | .mcp["heurist-finance"] = {"type":"remote","url":"http://localhost:3100/mcp"}' \
+          jq --arg url "$MCP_URL" --arg key "${API_KEY:-}" \
+            '.mcp |= (. // {}) | .mcp["heurist-finance"] = {"type":"remote","url":$url,"headers":{"Authorization":("Bearer " + $key)}}' \
             "$OC_CONFIG_JSON" > "$tmp" && mv "$tmp" "$OC_CONFIG_JSON"
         else
           python3 - <<PYEOF
 import json
 with open('${OC_CONFIG_JSON}') as f:
     data = json.load(f)
-data.setdefault('mcp', {})['heurist-finance'] = {'type': 'remote', 'url': 'http://localhost:3100/mcp'}
+data.setdefault('mcp', {})['heurist-finance'] = {
+    'type': 'remote',
+    'url': '${MCP_URL}',
+    'headers': {'Authorization': 'Bearer ${API_KEY:-}'}
+}
 with open('${OC_CONFIG_JSON}', 'w') as f:
     json.dump(data, f, indent=2)
 PYEOF
         fi
         ok "Added heurist-finance to ${OC_CONFIG_JSON}"
-        info "Start the bridge before using OpenCode: node ${SKILL_DIR}/bridge/index.js &"
       fi
     fi
     ;;
@@ -269,39 +284,72 @@ PYEOF
       ok "heurist-finance already configured in ${CODEX_TOML}"
     else
       printf "\n  ${BOLD}Codex CLI detected.${RESET}\n"
-      printf "  Heurist Finance uses an MCP bridge at localhost:3100.\n"
       printf "  This will add the MCP server config to %s\n\n" "${CODEX_TOML}"
       printf "  ${BOLD}Configure Codex MCP now? [Y/n]${RESET} "
       read -r REPLY
       if [[ "$REPLY" =~ ^[Nn] ]]; then
         warn "Skipped. To configure manually, add to ${CODEX_TOML}:"
         printf "    [mcp_servers.heurist-finance]\n"
-        printf "    type = \"http\"\n"
-        printf "    url = \"http://localhost:3100/mcp\"\n\n"
+        printf "    url = \"%s\"\n" "${MCP_URL}"
+        printf "    bearer_token_env_var = \"HEURIST_API_KEY\"\n\n"
       else
         mkdir -p "$(dirname "${CODEX_TOML}")"
         if [ ! -f "$CODEX_TOML" ]; then
           echo "" > "$CODEX_TOML"
         fi
-        # Append MCP config
-        cat >> "$CODEX_TOML" <<'TOML'
+        cat >> "$CODEX_TOML" <<TOML
 
 [mcp_servers.heurist-finance]
-type = "http"
-url = "http://localhost:3100/mcp"
+url = "${MCP_URL}"
+bearer_token_env_var = "HEURIST_API_KEY"
 TOML
         ok "Added heurist-finance to ${CODEX_TOML}"
-        info "Start the bridge before using Codex: node ${SKILL_DIR}/bridge/index.js &"
+        if [ -n "${API_KEY:-}" ]; then
+          info "Set HEURIST_API_KEY in your shell: export HEURIST_API_KEY='${API_KEY}'"
+        fi
       fi
     fi
     ;;
   unknown)
     warn "Could not detect agent. Attempting Claude Code config as default."
     info "Configuring ~/.mcp.json (Claude Code default)"
-    inject_mcp_entry "${CC_MCP_JSON}" "Claude Code (default)"
-    warn "If using OpenCode, also update ~/.config/opencode/opencode.json manually."
+    if [ ! -f "$CC_MCP_JSON" ]; then
+      echo '{}' > "$CC_MCP_JSON"
+    fi
+    if $HAS_JQ; then
+      local tmp
+      tmp="$(mktemp)"
+      jq --arg url "$MCP_URL" --arg key "${API_KEY:-}" \
+        '.mcpServers |= (. // {}) | .mcpServers["heurist-finance"] = {"type":"streamable-http","url":$url,"headers":{"Authorization":("Bearer " + $key)}}' \
+        "$CC_MCP_JSON" > "$tmp" && mv "$tmp" "$CC_MCP_JSON"
+    else
+      python3 - <<PYEOF
+import json
+with open('${CC_MCP_JSON}') as f:
+    data = json.load(f)
+data.setdefault('mcpServers', {})['heurist-finance'] = {
+    'type': 'streamable-http',
+    'url': '${MCP_URL}',
+    'headers': {'Authorization': 'Bearer ${API_KEY:-}'}
+}
+with open('${CC_MCP_JSON}', 'w') as f:
+    json.dump(data, f, indent=2)
+PYEOF
+    fi
+    ok "Added heurist-finance to ${CC_MCP_JSON} (default)"
+    warn "If using OpenCode or Codex, configure manually."
     ;;
 esac
+
+# Save API key to config.yaml if we got one and it's not already there
+if [ -n "${API_KEY:-}" ]; then
+  CONFIG_FILE="${HEURIST_DIR}/config.yaml"
+  if [ -f "$CONFIG_FILE" ] && grep -qE '^api_key:' "$CONFIG_FILE" 2>/dev/null; then
+    : # already present
+  elif [ -f "$CONFIG_FILE" ]; then
+    echo "api_key: ${API_KEY}" >> "$CONFIG_FILE"
+  fi
+fi
 
 # ---------------------------------------------------------------------------
 # 4. Create ~/.heurist config directory
@@ -325,12 +373,16 @@ CONFIG_FILE="${HEURIST_DIR}/config.yaml"
 if [ -f "${CONFIG_FILE}" ]; then
   ok "Config already exists: ${CONFIG_FILE}"
 else
-  cat > "${CONFIG_FILE}" <<'YAML'
+  cat > "${CONFIG_FILE}" <<YAML
 # Heurist Finance configuration
 theme: heurist
 auto_update_check: true
 first_run: true
 YAML
+  # Persist API key if available
+  if [ -n "${API_KEY:-}" ]; then
+    echo "api_key: ${API_KEY}" >> "${CONFIG_FILE}"
+  fi
   ok "Created default config: ${CONFIG_FILE}"
 fi
 
@@ -387,22 +439,24 @@ step 8 "MCP connectivity"
 if ! command -v curl &>/dev/null; then
   warn "curl not found — skipping connectivity check."
 else
-  info "Probing SSE endpoint: ${MCP_SSE_URL}"
+  info "Probing endpoint: ${MCP_URL}"
   HTTP_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
     --max-time 8 \
-    -H "Accept: text/event-stream" \
-    "${MCP_SSE_URL}" 2>/dev/null || echo "000")"
+    -X POST \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json, text/event-stream" \
+    -d '{"jsonrpc":"2.0","method":"initialize","id":0,"params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"setup","version":"0.1"}}}' \
+    "${MCP_URL}" 2>/dev/null || echo "000")"
 
-  # SSE endpoints return 200 and stream; any 2xx is a pass.
   if [[ "$HTTP_STATUS" =~ ^2 ]]; then
     ok "MCP endpoint reachable (HTTP ${HTTP_STATUS})"
   elif [ "$HTTP_STATUS" = "000" ]; then
     fail "MCP endpoint unreachable (connection error or timeout)"
-    warn "Check your network. URL: ${MCP_SSE_URL}"
+    warn "Check your network. URL: ${MCP_URL}"
     ERRORS=$((ERRORS + 1))
   else
     warn "MCP endpoint returned HTTP ${HTTP_STATUS} — may still be functional"
-    warn "URL: ${MCP_SSE_URL}"
+    warn "URL: ${MCP_URL}"
   fi
 fi
 
@@ -413,15 +467,15 @@ printf "\n${BOLD}━━━━━━━━━━━━━━━━━━━━━
 printf "${BOLD}  Heurist Finance — Setup Summary${RESET}\n"
 printf "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
 printf "  Skill dir  : %s\n"   "${SKILL_DIR}"
-printf "  Config     : %s\n"   "${CONFIG_FILE}"
+printf "  Config     : %s\n"   "${HEURIST_DIR}/config.yaml"
 printf "  Reports    : %s\n"   "${REPORTS_DIR}"
 printf "  Agent      : %s\n"   "${DETECTED_AGENT}"
-printf "  MCP URL    : %s\n"   "${MCP_SSE_URL}"
+printf "  MCP URL    : %s\n"   "${MCP_URL}"
 
 case "$DETECTED_AGENT" in
   claude-code) printf "  MCP config : %s\n" "${CC_MCP_JSON}" ;;
   opencode)    printf "  MCP config : %s\n" "${OC_CONFIG_JSON}" ;;
-  codex)       printf "  MCP config : %s (manual — see instructions above)\n" "${CODEX_DIR}" ;;
+  codex)       printf "  MCP config : %s\n" "${CODEX_DIR}/config.toml" ;;
   *)           printf "  MCP config : %s (default)\n" "${CC_MCP_JSON}" ;;
 esac
 

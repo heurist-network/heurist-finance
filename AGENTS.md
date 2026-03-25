@@ -53,4 +53,4 @@ npx vitest run            # single run, no watch
 - `~/.heurist/config.yaml` - preferences
 - `~/.heurist/sessions/` - agent memory (session records)
 - Terminal port: 7707
-- Bridge port: 3100 (override with `HEURIST_BRIDGE_PORT`)
+- MCP endpoint: `https://mesh.heurist.xyz/mcp/heurist-finance`

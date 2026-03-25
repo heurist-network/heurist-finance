@@ -24,5 +24,5 @@ export const schema = {
     return data;
   },
   shape: 'object with { values: number[] }',
-  mcpTools: ['yahoo.price_history', 'fred.macro_series_history', 'fred.macro_vintage_history', 'sec.xbrl_fact_trends'],
+  mcpTools: ['yahoofinanceagent_price_history', 'fredmacroagent_macro_series_history', 'fredmacroagent_macro_vintage_history', 'secedgaragent_xbrl_fact_trends'],
 };

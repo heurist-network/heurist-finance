@@ -208,18 +208,24 @@ either a voiced question or the research note itself.**
 This skill requires the `heurist-finance` MCP server. Tools are prefixed
 `mcp__heurist-finance__`.
 
+Static endpoint (all agents): `https://mesh.heurist.xyz/mcp/heurist-finance`
+
 **Claude Code** - `~/.mcp.json`:
 ```json
-{ "mcpServers": { "heurist-finance": { "type": "sse", "url": "https://mcp.mesh.heurist.xyz/toolaac6abd2/sse" } } }
+{ "mcpServers": { "heurist-finance": { "type": "streamable-http", "url": "https://mesh.heurist.xyz/mcp/heurist-finance", "headers": { "Authorization": "Bearer <your-api-key>" } } } }
 ```
 
 **OpenCode** - `~/.config/opencode/opencode.json`:
 ```json
-{ "mcpServers": { "heurist-finance": { "type": "sse", "url": "https://mcp.mesh.heurist.xyz/toolaac6abd2/sse" } } }
+{ "mcp": { "heurist-finance": { "type": "remote", "url": "https://mesh.heurist.xyz/mcp/heurist-finance", "headers": { "Authorization": "Bearer <your-api-key>" } } } }
 ```
 
-**Codex CLI** - run `setup.sh` or: `cd <skill-dir> && node bridge/index.js &`
-Then configure Codex to use `http://localhost:3100/mcp`.
+**Codex CLI** - `~/.codex/config.toml`:
+```toml
+[mcp_servers.heurist-finance]
+url = "https://mesh.heurist.xyz/mcp/heurist-finance"
+bearer_token_env_var = "HEURIST_API_KEY"
+```
 
 ### Setup Check (run silently)
 
@@ -428,10 +434,14 @@ the silent setup phase, immediately after TUI detection succeeds.
 ```bash
 curl -sf "http://127.0.0.1:${PORT}/connect" \
   -H 'Content-Type: application/json' \
-  -d '{"agent":"claude-code","model":"claude-opus-4-6"}'
+  -d '{"agent":"<your-agent-name>","model":"<your-model-id>"}'
 ```
 
-The TUI lights up: "Connected · claude-code · claude-opus-4-6". The user
+Replace `<your-agent-name>` with your actual agent (e.g. `claude-code`, `opencode`, `codex`).
+Replace `<your-model-id>` with your actual model (e.g. `claude-opus-4-6`, `gpt-5.4`, `minimax-m2.7`).
+Do NOT hardcode "claude-code" or "claude-opus-4-6" if you are a different agent or model.
+
+The TUI lights up: "Connected · {agent} · {model}". The user
 sees the terminal come alive. This MUST happen before the first ASK.
 
 If TUI_DOWN, skip this step - you'll connect after setup if the user
@@ -474,11 +484,11 @@ PORT=$(grep -o '"port":[[:space:]]*[0-9]*' "$STATE_FILE" | grep -o '[0-9]*')
 curl -sf "http://127.0.0.1:${PORT}/health" > /dev/null 2>&1 && echo "TUI_READY:${PORT}" || echo "TUI_DOWN"
 ```
 
-4. Once healthy, connect:
+4. Once healthy, connect (use YOUR actual agent name and model ID):
 ```bash
 curl -sf "http://127.0.0.1:${PORT}/connect" \
   -H 'Content-Type: application/json' \
-  -d '{"agent":"claude-code","model":"claude-opus-4-6"}'
+  -d '{"agent":"<your-agent-name>","model":"<your-model-id>"}'
 ```
 
 If the user declines, proceed in Research mode - same intelligence, same depth, markdown output.
@@ -872,15 +882,15 @@ The render payload goes into the **file** (not the POST body):
   "blocks": [...],
   "_state": {
     "stage": "gathering",
-    "agent": "claude-code",
-    "model": "claude-opus-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "analyst",
     "query": "NVDA",
     "tools": {
       "called": 4,
       "total": 8,
-      "current": "sec.insider_activity",
-      "completed": ["yahoo.quote_snapshot", "yahoo.price_history"]
+      "current": "insider_activity",
+      "completed": ["quote_snapshot", "price_history"]
     },
     "follow_ups": []
   }

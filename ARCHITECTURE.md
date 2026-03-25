@@ -11,12 +11,12 @@
   |  Sub-skill --> fetches data via MCP tools                   |
   |  Sub-skill --> POSTs panels to TUI server                   |
   +----------+------------------------------------+--------------+
-             | MCP (SSE or bridge)                | HTTP POST /render
+             | MCP (Streamable HTTP)              | HTTP POST /render
              v                                    v
   +--------------------+             +----------------------+
   |  Heurist Mesh      |             |  TUI Server          |
-  |  mcp.mesh.         |             |  localhost:7707      |
-  |  heurist.xyz       |             |                      |
+  |  mesh.heurist.xyz  |             |  localhost:7707      |
+  |  /mcp/heurist-     |             |                      |
   |                    |             |  Plain JS TUI        |
   |  Yahoo Finance    |             |  20 components       |
   |  FRED Macro       |             |  Block engine (7 types) |
@@ -59,8 +59,6 @@ heurist-finance/
 |   +-- server.js         # HTTP server - POST /render, GET /health, GET /stats
 |   +-- debugLog.js       # Opt-in debug logging (schema, render, state)
 |   +-- schemas/          # Panel payload schemas (20 validators)
-+-- bridge/               # MCP bridge (SSE - Streamable HTTP)
-|   +-- index.js          # Proxy + local resources (heurist://skill, tools, layouts)
 +-- bin/                  # Shell scripts and launchers
 |   +-- hf               # Main launcher
 |   +-- hf-post          # Post panels from CLI
@@ -177,26 +175,24 @@ the incoming data to match what the component function expects.
 - Scroll support: keyboard (j/k/up/down/PgUp/PgDn/g/G) + mouse wheel (SGR mode)
 - Block engine: 7 types - panel, table, row, stack, divider, text, spacer
 
-## MCP bridge (bridge/index.js)
+## MCP connection
 
-Proxies the Heurist Mesh SSE server into Streamable HTTP at localhost:3100.
+All agents connect directly to Heurist Mesh via Streamable HTTP:
 
-- `POST /mcp` - Streamable HTTP endpoint (JSON-RPC)
-- `GET /sse` - Legacy SSE passthrough
-- `GET /health` - Status check
+```
+Endpoint: https://mesh.heurist.xyz/mcp/heurist-finance
+Auth:     Authorization: Bearer <api-key>
+```
 
-Local resources (served by bridge, not upstream):
-- `heurist://skill` - SKILL.md content
-- `heurist://tools` - Tool reference table
-- `heurist://layouts` - Layout schemas
+No bridge or local proxy needed. Claude Code, OpenCode, and Codex CLI all
+support Streamable HTTP natively.
 
 ## Config directory (~/.heurist/)
 
 ```
 ~/.heurist/
-+-- config.yaml    - User preferences (theme, depth, telemetry, debug_log)
++-- config.yaml    - User preferences (theme, api_key, telemetry, debug_log)
 +-- tui.json       - TUI state (pid, port, startedAt) - written by server.js
-+-- bridge.json    - Bridge state (pid, port, startedAt) - written by bridge
 +-- sessions/      - Agent session memory (conviction tracking)
 +-- analytics/     - Request and session telemetry (JSONL, local-only)
 +-- debug.log      - Opt-in debug log (schema coercions, render events)

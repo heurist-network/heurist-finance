@@ -20,5 +20,5 @@ export const schema = {
     },
   },
   shape: 'object with { value: number }',
-  mcpTools: ['fred.macro_series_snapshot'],
+  mcpTools: ['fredmacroagent_macro_series_snapshot'],
 };

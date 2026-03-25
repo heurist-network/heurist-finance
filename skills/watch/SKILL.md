@@ -237,8 +237,8 @@ cat > /tmp/hf-render.json << 'EOF'
   "action": "render",
   "_state": {
     "stage": "analyzing",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "watch",
     "query": "<user-query>",
     "tools": { "called": 6, "total": 9, "current": "quote_snapshot", "completed": ["resolve_symbol", "quote_snapshot"] }
@@ -283,8 +283,8 @@ cat > /tmp/hf-render.json << 'EOF'
   "patch": true,
   "_state": {
     "stage": "complete",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "watch",
     "query": "<user-query>",
     "tools": { "called": 9, "total": 9, "current": "macro_regime_context", "completed": ["resolve_symbol", "quote_snapshot", "macro_regime_context"] }
@@ -325,8 +325,8 @@ cat > /tmp/hf-render.json << 'EOF'
   "action": "render",
   "_state": {
     "stage": "analyzing",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "watch",
     "query": "<user-query>",
     "tools": { "called": 6, "total": 13, "current": "quote_snapshot", "completed": ["resolve_symbol", "quote_snapshot"] }
@@ -359,8 +359,8 @@ cat > /tmp/hf-render.json << 'EOF'
   "patch": true,
   "_state": {
     "stage": "analyzing",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "watch",
     "query": "<user-query>",
     "tools": { "called": 10, "total": 13, "current": "analyst_snapshot", "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot", "analyst_snapshot"] }
@@ -397,8 +397,8 @@ cat > /tmp/hf-render.json << 'EOF'
   "patch": true,
   "_state": {
     "stage": "complete",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "watch",
     "query": "<user-query>",
     "tools": { "called": 13, "total": 13, "current": "macro_regime_context", "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot", "analyst_snapshot", "macro_regime_context"] }

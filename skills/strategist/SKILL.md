@@ -165,8 +165,8 @@ Write to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
   "action": "render",
   "_state": {
     "stage": "gathering",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "strategist",
     "query": "<user-query>",
     "tools": { "called": 2, "total": 12, "current": "macro_release_calendar", "completed": ["macro_regime_context"] }
@@ -204,8 +204,8 @@ Single chart POST as each series arrives:
   "patch": true,
   "_state": {
     "stage": "gathering",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "strategist",
     "query": "<user-query>",
     "tools": { "called": 4, "total": 12, "current": "macro_series_history", "completed": ["macro_regime_context", "macro_release_calendar", "macro_series_history:CPIAUCSL"] }
@@ -225,8 +225,8 @@ Once both CPI and PCE are available, post a paired row (still `patch: true`, onl
   "patch": true,
   "_state": {
     "stage": "gathering",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "strategist",
     "query": "<user-query>",
     "tools": { "called": 5, "total": 12, "current": "macro_series_history", "completed": ["macro_regime_context", "macro_release_calendar", "macro_series_history:CPIAUCSL", "macro_series_history:PCEPI"] }
@@ -252,8 +252,8 @@ value for each active pillar's headline indicator:
   "patch": true,
   "_state": {
     "stage": "gathering",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "strategist",
     "query": "<user-query>",
     "tools": { "called": 9, "total": 12, "current": "macro_series_history", "completed": ["macro_regime_context", "macro_release_calendar", "macro_series_history:CPIAUCSL", "macro_series_history:PCEPI", "macro_series_history:UNRATE", "macro_series_history:FEDFUNDS", "macro_series_history:DGS10"] }
@@ -286,8 +286,8 @@ Write to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
   "patch": true,
   "_state": {
     "stage": "analyzing",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "strategist",
     "query": "<user-query>",
     "tools": { "called": 11, "total": 12, "current": "technical_snapshot", "completed": ["macro_regime_context", "macro_release_calendar", "macro_series_history:*", "market_overview", "quote_snapshot"] }
@@ -314,8 +314,8 @@ Write to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
   "patch": true,
   "_state": {
     "stage": "complete",
-    "agent": "claude-code",
-    "model": "claude-sonnet-4-6",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
     "skill": "strategist",
     "query": "<user-query>",
     "tools": { "called": 12, "total": 12, "current": "exa_web_search", "completed": ["macro_regime_context", "macro_release_calendar", "macro_series_history:*", "market_overview", "quote_snapshot", "technical_snapshot", "macro_release_context"] },

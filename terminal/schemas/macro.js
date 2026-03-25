@@ -75,5 +75,5 @@ export const schema = {
     return data;
   },
   shape: 'object with { pillars: [{label, value, direction}] }',
-  mcpTools: ['fred.macro_regime_context', 'yahoo.market_overview'],
+  mcpTools: ['fredmacroagent_macro_regime_context', 'yahoofinanceagent_market_overview'],
 };

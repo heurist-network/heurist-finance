@@ -42,5 +42,5 @@ export const schema = {
     },
   },
   shape: 'object with optional { rsi, macd, trend, signals, gauges }',
-  mcpTools: ['yahoo.technical_snapshot'],
+  mcpTools: ['yahoofinanceagent_technical_snapshot'],
 };
