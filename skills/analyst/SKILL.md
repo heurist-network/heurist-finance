@@ -11,7 +11,7 @@ description: |
 > identity, MCP setup, TUI /connect handshake, render protocol, and the shape catalog.
 > This file handles only the sub-skill-specific flow.
 
-# :analyst - Single-Ticker Company Analysis
+# heurist-finance/analyst - Single-Ticker Company Analysis
 
 *Your name goes on this tearsheet.*
 
@@ -642,7 +642,7 @@ Write to `/tmp/hf-render.json`:
 ```
 Then POST: `hf-post /tmp/hf-render.json`
 
-**Compare with peers**: Exit this sub-skill. Route to `:pm` with the current
+**Compare with peers**: Exit this sub-skill. Route to `heurist-finance/pm` skill with the current
 `yahoo_symbol` pre-loaded as the first ticker. Ask the user for 1-4 peer tickers.
 
 **Show earnings surprise**: Fetch `company_fundamentals` if not already fetched,

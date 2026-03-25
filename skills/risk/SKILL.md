@@ -13,7 +13,7 @@ description: |
 > identity, MCP setup, TUI /connect handshake, render protocol, and the shape catalog.
 > This file handles only the sub-skill-specific flow.
 
-# heurist-finance:risk - Heurist Finance Event & Catalyst Impact Analysis
+# heurist-finance/risk - Heurist Finance Event & Catalyst Impact Analysis
 
 *What's priced in? Where's the asymmetry?*
 
@@ -470,10 +470,10 @@ directions, not a fixed menu. Ask in your own voice.
 
 Common directions:
 
-- The primary affected name deserves a full tearsheet → route to `:analyst`
+- The primary affected name deserves a full tearsheet → route to `heurist-finance/analyst` skill
 - Historical analogs would sharpen the trade call → fetch past events via exa, summarize outcomes (direction, magnitude, regime at the time)
-- The event ripples into a sector → route to `:sector-head` with event context pre-loaded
-- Multiple affected names warrant a head-to-head → route to `:pm`
+- The event ripples into a sector → route to `heurist-finance/sector-head` skill with event context pre-loaded
+- Multiple affected names warrant a head-to-head → route to `heurist-finance/pm` skill
 
 ---
 

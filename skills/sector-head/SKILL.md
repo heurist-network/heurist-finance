@@ -11,7 +11,7 @@ description: |
 > identity, MCP setup, TUI /connect handshake, render protocol, and the shape catalog.
 > This file handles only the sub-skill-specific flow.
 
-# /heurist-finance:sector-head - Heurist Finance Sector & Thematic Analysis
+# heurist-finance/sector-head - Heurist Finance Sector & Thematic Analysis
 
 *Find the outlier. Where's the rotation?*
 
@@ -421,8 +421,8 @@ are directions, not a fixed menu. Ask in your own voice.
 
 Common directions:
 
-- The sector outlier deserves a full tearsheet → route to `:analyst`
-- The top names warrant a head-to-head comparison → route to `:pm`
+- The sector outlier deserves a full tearsheet → route to `heurist-finance/analyst` skill
+- The top names warrant a head-to-head comparison → route to `heurist-finance/pm` skill
 - A specific macro series is driving the sector → fetch additional macro data, update gauges panel
 - A sub-theme is more interesting than the full sector → re-scope and re-run
 

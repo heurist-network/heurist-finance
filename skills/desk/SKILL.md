@@ -203,8 +203,8 @@ Let the data drive the framing (e.g. if NVDA is breaking down, surface that;
 if it's a quiet tape, say so).
 
 Common directions if the user wants more:
-- Specific name is interesting → route to `heurist-finance:analyst`
-- Macro context needed → route to `heurist-finance:strategist`
+- Specific name is interesting → route to `heurist-finance/analyst` skill
+- Macro context needed → route to `heurist-finance/strategist` skill
 
 Do not volunteer additional analysis. Do not fetch more data unless the user
 asks for it.
@@ -311,7 +311,7 @@ zero-padded to 3 digits. Delete sessions older than 90 days:
 ## Constraints
 
 - Max 5 MCP calls total. If a call errors, skip it and render with what you have.
-- No analyst data, no news, no insiders, no earnings - those belong in `:analyst`.
+- No analyst data, no news, no insiders, no earnings - those belong in `heurist-finance/analyst` skill.
 - `variant: "compact"` on the quote panel is mandatory - keeps the layout single-row.
 - `signals` array holds exactly one entry: the dominant signal as a short string.
 - The `macro.pillars` array uses objects: `{ "pillar": string, "state": string, "direction": "up"|"down"|"flat" }` - not flat strings.

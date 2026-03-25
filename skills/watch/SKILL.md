@@ -12,7 +12,7 @@ description: |
 > identity, MCP setup, TUI /connect handshake, render protocol, and the shape catalog.
 > This file handles only the sub-skill-specific flow.
 
-# /heurist-finance:watch - Heurist Finance Tracked Tickers Dashboard
+# heurist-finance/watch - Heurist Finance Tracked Tickers Dashboard
 
 *What changed? Flag the movers.*
 
@@ -458,8 +458,8 @@ These are data-driven follow-ups, not a fixed menu.
 
 Common directions:
 
-- A mover stands out → offer a full tearsheet → route to `:analyst`
-- The top movers warrant a head-to-head → route to `:pm` with the top N (≤ 5) by `|changePct|`
+- A mover stands out → offer a full tearsheet → route to `heurist-finance/analyst` skill
+- The top movers warrant a head-to-head → route to `heurist-finance/pm` skill with the top N (≤ 5) by `|changePct|`
 - Watchlist management needed → add or remove tickers
 - A refresh is useful → re-run Phases 2–4, POST updated render
 
@@ -480,14 +480,14 @@ Common directions:
 
 ### Deep dive routing
 
-Pass the ticker directly to the `:analyst` sub-skill. Read
+Pass the ticker directly to the `heurist-finance/analyst` skill. Read
 `skills/analyst/SKILL.md` and follow its instructions with the selected
 ticker pre-supplied (skip the ticker-ask step).
 
 ### Compare top movers routing
 
 Collect the top N tickers (N = min(5, tickers with `|changePct| >= 1.0%`)).
-Pass as the comparison set to `:pm`. Read `skills/pm/SKILL.md` and
+Pass as the comparison set to `heurist-finance/pm` skill. Read `skills/pm/SKILL.md` and
 follow its instructions with the ticker list pre-supplied.
 
 ---

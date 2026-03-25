@@ -493,13 +493,13 @@ If the user provided a query, route based on intent:
 
 | Intent | Sub-skill | Example |
 |--------|-----------|---------|
-| Single ticker | `:analyst` | "NVDA", "what do you think about Apple" |
-| Compare | `:pm` | "NVDA vs AMD", "compare big tech" |
-| Sector | `:sector-head` | "semiconductors", "AI stocks" |
-| Macro | `:strategist` | "inflation outlook", "what's the Fed doing" |
-| Market overview | `:desk` | "how's the market", "pulse" |
-| Event | `:risk` | "FOMC impact", "tariff analysis" |
-| Watchlist | `:watch` | "my watchlist", "tracked tickers" |
+| Single ticker | `heurist-finance/analyst` | "NVDA", "what do you think about Apple" |
+| Compare | `heurist-finance/pm` | "NVDA vs AMD", "compare big tech" |
+| Sector | `heurist-finance/sector-head` | "semiconductors", "AI stocks" |
+| Macro | `heurist-finance/strategist` | "inflation outlook", "what's the Fed doing" |
+| Market overview | `heurist-finance/desk` | "how's the market", "pulse" |
+| Event | `heurist-finance/risk` | "FOMC impact", "tariff analysis" |
+| Watchlist | `heurist-finance/watch` | "my watchlist", "tracked tickers" |
 
 If no query, ask what they want to look at. Keep it natural - you're at
 the desk, someone walked in. Simply "What are we looking at? For example, you can ask me..." is fine.
@@ -512,13 +512,13 @@ After routing, set these for telemetry:
 ### Sub-skill Files
 
 ```
-skills/analyst/SKILL.md      → /heurist-finance:analyst
-skills/pm/SKILL.md           → /heurist-finance:pm
-skills/strategist/SKILL.md   → /heurist-finance:strategist
-skills/sector-head/SKILL.md  → /heurist-finance:sector-head
-skills/desk/SKILL.md         → /heurist-finance:desk
-skills/risk/SKILL.md         → /heurist-finance:risk
-skills/watch/SKILL.md        → /heurist-finance:watch
+skills/analyst/SKILL.md      → heurist-finance/analyst
+skills/pm/SKILL.md           → heurist-finance/pm
+skills/strategist/SKILL.md   → heurist-finance/strategist
+skills/sector-head/SKILL.md  → heurist-finance/sector-head
+skills/desk/SKILL.md         → heurist-finance/desk
+skills/risk/SKILL.md         → heurist-finance/risk
+skills/watch/SKILL.md        → heurist-finance/watch
 ```
 
 Read the sub-skill's SKILL.md and follow its instructions.
@@ -661,9 +661,9 @@ curl -sf "http://127.0.0.1:${PORT}/render" \
 **On final render** (`stage: "complete"`), include `follow_ups`:
 ```json
 "follow_ups": [
-  { "key": "1", "label": "Drill into fundamentals", "cmd": "/hf:analyst NVDA --deep" },
-  { "key": "2", "label": "Compare with AMD", "cmd": "/hf:pm NVDA AMD" },
-  { "key": "3", "label": "Macro impact", "cmd": "/hf:strategist --sector semis" }
+  { "key": "1", "label": "Drill into fundamentals", "cmd": "/heurist-finance use analyst skill. NVDA" },
+  { "key": "2", "label": "Compare with AMD", "cmd": "/heurist-finance use pm skill. NVDA AMD" },
+  { "key": "3", "label": "Macro impact", "cmd": "/heurist-finance use strategist skill. Semiconductors macro impact" }
 ]
 ```
 

@@ -11,7 +11,7 @@ description: |
 > identity, MCP setup, TUI /connect handshake, render protocol, and the shape catalog.
 > This file handles only the sub-skill-specific flow.
 
-# heurist-finance:strategist - Heurist Finance Macro Regime Analysis
+# heurist-finance/strategist - Heurist Finance Macro Regime Analysis
 
 *Connect every indicator to a trade.*
 
@@ -387,7 +387,7 @@ Common directions (not a script):
 - Labor and growth are sending mixed signals → pull GDP components, payroll internals, leading indicators
 - The release calendar matters right now → full 30-day calendar with expected vs. prior for top 5 releases
 - Vintage data is useful when a recent revision changes the picture → historical revisions via ALFRED
-- A sector or name is clearly in the crossfire → route to `:sector-head` or `:analyst` with macro context pre-loaded
+- A sector or name is clearly in the crossfire → route to `heurist-finance/sector-head` or `heurist-finance/analyst` skill with macro context pre-loaded
 
 Each drill: fetch additional data → POST updated panels → offer next follow-up.
 
@@ -412,7 +412,7 @@ release previews.
 POST chart panel showing revision history.
 
 **Sector/ticker impact**: pass macro context (regime state, dominant pillar,
-conviction) to `:sector-head` or `:analyst` as context. Load the appropriate sub-skill.
+conviction) to `heurist-finance/sector-head` or `heurist-finance/analyst` skill as context. Load the appropriate sub-skill.
 
 ---
 

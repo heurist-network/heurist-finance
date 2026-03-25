@@ -11,7 +11,7 @@ description: |
 > identity, MCP setup, TUI /connect handshake, render protocol, and the shape catalog.
 > This file handles only the sub-skill-specific flow.
 
-# /heurist-finance:pm - Heurist Finance Multi-Ticker Comparison
+# heurist-finance/pm - Heurist Finance Multi-Ticker Comparison
 
 *Rank by conviction. Pick the position.*
 
@@ -266,7 +266,7 @@ Write to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
     "query": "<user-query>",
     "tools": { "called": 14, "total": 14, "current": "exa_web_search", "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot", "price_history", "company_fundamentals", "analyst_snapshot", "macro_regime_context"] },
     "follow_ups": [
-      "AMD full tearsheet → route to :analyst",
+      "AMD full tearsheet → route to heurist-finance/analyst skill",
       "Add QCOM to the comparison",
       "Relative performance chart - normalized to 100"
     ]
@@ -409,8 +409,8 @@ Then offer data-driven follow-ups based on what the comparison actually showed.
 
 Don't present a fixed menu. Let the data drive. Common directions:
 
-- The top-ranked ticker deserves a full tearsheet → route to `:analyst`
-- A specific ticker warrants deeper investigation → route to `:analyst`
+- The top-ranked ticker deserves a full tearsheet → route to `heurist-finance/analyst` skill
+- A specific ticker warrants deeper investigation → route to `heurist-finance/analyst` skill
 - Adding another name to the comparison → re-run with expanded ticker list
 - Relative performance chart → fetch price_history for all, normalize, re-render chart panel
 - Analyst breakdown for a specific ticker → fetch analyst_snapshot, render analyst panel update
