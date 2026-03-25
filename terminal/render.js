@@ -126,7 +126,6 @@ export function buildFooter(width) {
 
   // Agent state: show progress during gathering/analyzing
   if (s && (s.stage === 'gathering' || s.stage === 'analyzing')) {
-    _spinnerTick++;
     const spin = `${BRAND}${SPINNER_FRAMES[_spinnerTick % SPINNER_FRAMES.length]}${RESET}`;
     const parts = [
       `  ${gradMark} ${spin}`,
@@ -248,6 +247,7 @@ export function startRenderAnimation() {
       _animTimer = null;
       return;
     }
+    _spinnerTick++;
     const w = process.stdout.columns ?? 80;
     const rows = process.stdout.rows ?? 24;
     const allLines = tui.lastContent.split('\n');

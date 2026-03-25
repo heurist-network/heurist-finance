@@ -4536,7 +4536,6 @@ function buildFooter(width) {
   const meshLabel = `${BRAND}${BOLD2}HEURIST FINANCE${RESET2}`;
   const sep = `${DIM2} \xB7 ${RESET2}`;
   if (s && (s.stage === "gathering" || s.stage === "analyzing")) {
-    _spinnerTick++;
     const spin = `${BRAND}${SPINNER_FRAMES[_spinnerTick % SPINNER_FRAMES.length]}${RESET2}`;
     const parts = [
       `  ${gradMark} ${spin}`,
@@ -4624,6 +4623,7 @@ function startRenderAnimation() {
       _animTimer = null;
       return;
     }
+    _spinnerTick++;
     const w = process.stdout.columns ?? 80;
     const rows = process.stdout.rows ?? 24;
     const allLines = tui.lastContent.split("\n");
