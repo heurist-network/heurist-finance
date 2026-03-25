@@ -4614,19 +4614,34 @@ function applyShimmer(content) {
 var _animTimer = null;
 function startRenderAnimation() {
   stopRenderAnimation();
-  _animTimer = setInterval(() => {
-    if (!tui.lastContent) return;
-    const s = tui.agentState;
-    if (!s || s.stage !== "gathering" && s.stage !== "analyzing") {
-      stopRenderAnimation();
+  const tick = () => {
+    if (!tui.lastContent) {
+      _animTimer = setTimeout(tick, 110);
       return;
     }
-    paintWithScroll(false);
-  }, 200);
+    const s = tui.agentState;
+    if (!s || s.stage !== "gathering" && s.stage !== "analyzing") {
+      _animTimer = null;
+      return;
+    }
+    const w = process.stdout.columns ?? 80;
+    const rows = process.stdout.rows ?? 24;
+    const allLines = tui.lastContent.split("\n");
+    const totalLines = allLines.length;
+    const footer = buildFooter(w);
+    const padded = footer + " ".repeat(Math.max(0, w - visLen(footer)));
+    if (totalLines <= rows) {
+      process.stdout.write(`\x1B[${totalLines};1H${padded}`);
+    } else {
+      process.stdout.write(`\x1B[${rows - 1};1H${padded}`);
+    }
+    _animTimer = setTimeout(tick, 110);
+  };
+  _animTimer = setTimeout(tick, 110);
 }
 function stopRenderAnimation() {
   if (_animTimer) {
-    clearInterval(_animTimer);
+    clearTimeout(_animTimer);
     _animTimer = null;
   }
 }

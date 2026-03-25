@@ -234,24 +234,41 @@ export function applyShimmer(content) {
 let _animTimer = null;
 
 /**
- * Spinner animation — calls paintWithScroll in overwrite mode (no screen clear).
- * Works for both overflow and non-overflow content.
+ * Spinner animation — repaints ONLY the footer line on each tick.
+ * Full screen repaints are expensive and cause timer drift. The spinner
+ * only lives in the footer, so we cursor-address that single line.
+ * Full repaints happen on render events and scroll input, not here.
  */
 export function startRenderAnimation() {
   stopRenderAnimation();
-  _animTimer = setInterval(() => {
-    if (!tui.lastContent) return;
+  const tick = () => {
+    if (!tui.lastContent) { _animTimer = setTimeout(tick, 110); return; }
     const s = tui.agentState;
     if (!s || (s.stage !== 'gathering' && s.stage !== 'analyzing')) {
-      stopRenderAnimation();
+      _animTimer = null;
       return;
     }
-    paintWithScroll(false); // false = no screen clear, overwrite in place
-  }, 200);
+    const w = process.stdout.columns ?? 80;
+    const rows = process.stdout.rows ?? 24;
+    const allLines = tui.lastContent.split('\n');
+    const totalLines = allLines.length;
+    const footer = buildFooter(w);
+    const padded = footer + ' '.repeat(Math.max(0, w - visLen(footer)));
+
+    if (totalLines <= rows) {
+      // Content fits — footer is on the last content line
+      process.stdout.write(`\x1b[${totalLines};1H${padded}`);
+    } else {
+      // Content overflows — footer is pinned to the last terminal row
+      process.stdout.write(`\x1b[${rows - 1};1H${padded}`);
+    }
+    _animTimer = setTimeout(tick, 110);
+  };
+  _animTimer = setTimeout(tick, 110);
 }
 
 export function stopRenderAnimation() {
-  if (_animTimer) { clearInterval(_animTimer); _animTimer = null; }
+  if (_animTimer) { clearTimeout(_animTimer); _animTimer = null; }
 }
 
 // ── Direct stdout painting ──────────────────────────────────────────────────
