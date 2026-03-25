@@ -12,9 +12,10 @@
 </p>
 
 <p align="center">
-  <a href="http://misc-files.heurist.xyz/split-demo.mp4">
-    <img src="docs/screenshots/NVDA.png" width="720" alt="NVDA deep-dive dashboard - click to open the demo video" />
-  </a>
+  <video width="720" controls autoplay muted loop playsinline poster="docs/screenshots/NVDA.png">
+    <source src="https://misc-files.heurist.xyz/split-demo.mp4" type="video/mp4" />
+    <a href="https://misc-files.heurist.xyz/split-demo.mp4">Open the demo video</a>
+  </video>
 </p>
 
 ---
