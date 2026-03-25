@@ -1,6 +1,6 @@
 {
   "name": "heurist-finance",
-  "version": "0.9.11",
+  "version": "0.9.12",
   "description": "Heurist Finance — agent-driven financial terminal for Heurist Mesh",
   "type": "module",
   "scripts": {
