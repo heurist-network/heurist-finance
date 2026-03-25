@@ -12,7 +12,9 @@
 </p>
 
 <p align="center">
-  <video src="https://github.com/user-attachments/assets/893c5a01-eaf9-404b-9d8f-6ed4472a9c6b" width="720" autoplay loop muted></video>
+  <a href="http://misc-files.heurist.xyz/split-demo.mp4">
+    <img src="docs/screenshots/NVDA.png" width="720" alt="NVDA deep-dive dashboard - click to open the demo video" />
+  </a>
 </p>
 
 ---
