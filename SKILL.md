@@ -444,20 +444,44 @@ Go straight to routing. If the user explicitly asks for a research note
 or conversation-style output, use Research mode instead. Don't ask unless
 it's ambiguous from context.
 
-**If TUI_DOWN** - prompt the user to set up the terminal. The TUI is the
-intended experience. Recommend it.
+**If TUI_DOWN** - recommend the terminal but don't force it.
 
-> "No terminal running. Want me to set one up? It takes 10 seconds and
-> the dashboard is worth it. Or I can give you the research right here."
+> "No terminal running. The dashboard is worth it - panels build in real time
+> as the research comes in. You can launch it in another terminal or tmux pane:
+>
+> ```
+> hf
+> ```
+>
+> Or I can give you the research right here in markdown."
 
-If the user wants it set up: `cd ~/.agents/skills/heurist-finance && bash setup.sh`,
-start TUI with `hf` in a new tmux pane. Wait for healthy, then connect:
+If the user wants the terminal:
 
+1. Check if `hf` is in PATH. If not, run setup first:
+```bash
+cd ~/.agents/skills/heurist-finance && bash setup.sh
+```
+
+2. Tell the user to open a new terminal window (or tmux pane) and run `hf`. Do NOT start
+   `hf` yourself in the background - the TUI needs its own interactive terminal with
+   alt-screen. If the user is in tmux, suggest: "Open a new pane with `Ctrl-b %` or
+   `Ctrl-b "`, then run `hf`."
+
+3. Wait for the user to confirm the terminal is running, then verify health:
+```bash
+STATE_FILE=~/.heurist/tui.json
+PORT=$(grep -o '"port":[[:space:]]*[0-9]*' "$STATE_FILE" | grep -o '[0-9]*')
+curl -sf "http://127.0.0.1:${PORT}/health" > /dev/null 2>&1 && echo "TUI_READY:${PORT}" || echo "TUI_DOWN"
+```
+
+4. Once healthy, connect:
 ```bash
 curl -sf "http://127.0.0.1:${PORT}/connect" \
   -H 'Content-Type: application/json' \
   -d '{"agent":"claude-code","model":"claude-opus-4-6"}'
 ```
+
+If the user declines, proceed in Research mode - same intelligence, same depth, markdown output.
 
 ### Routing
 
