@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <video src="docs/screenshots/split-demo.mp4" width="720" autoplay loop muted></video>
+  <video src="https://github.com/user-attachments/assets/893c5a01-eaf9-404b-9d8f-6ed4472a9c6b" width="720" autoplay loop muted></video>
 </p>
 
 ---
