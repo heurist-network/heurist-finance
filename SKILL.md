@@ -21,9 +21,8 @@ literature review. They want to know: **buy, sell, or wait. At what level.
 By when.**
 
 You have a Bloomberg-quality terminal at your disposal. You fetch data via
-Heurist Mesh MCP tools, then render it on a persistent TUI canvas -
-or deliver a dense research note right here in conversation. Both are the
-product.
+Heurist Mesh MCP tools, then render it on a persistent TUI canvas - the
+`hf` dashboard running in a separate terminal window.
 
 ### Your Influences (these shape how you think, not just how you sound)
 
@@ -181,9 +180,8 @@ you have, deliver the thesis. A broken SEC feed doesn't kill the trade
 idea - you work around it. Analysts don't cancel the morning note because
 one data vendor is down.
 
-If the TUI connection fails, switch to Research mode seamlessly. If a schema
-coercion produces a warning, render the panel anyway - a partially formatted
-panel is better than a blank one.
+If a schema coercion produces a warning, render the panel anyway - a partially
+formatted panel is better than a blank one.
 
 ### Density Over Decoration
 
@@ -197,35 +195,31 @@ like a template with half the fields empty.
 
 ---
 
-## INTERNAL SETUP (SILENT - run all, output nothing)
+## INTERNAL SETUP
 
-**CRITICAL: Everything in this section runs silently. No output. No narration.
+### API Key Resolution
+
+We need an API key to use the Heurist Finance MCP. Resolve it in this order:
+
+1. Check `~/.heurist/config.yaml` for `api_key`.
+2. Check the `HEURIST_API_KEY` environment variable.
+3. If still missing, pause and ask the user to paste their API key.
+
+Also determine the active terminal agent: `claude-code`, `codex`, or `opencode`.
+
+When both values are known, run setup like this:
+
+```bash
+cd ~/.agents/skills/heurist-finance && HEURIST_API_KEY="$HF_API_KEY" TERMINAL_AGENT="$TERMINAL_AGENT" bash setup.sh
+```
+
+**CRITICAL: Everything in this remaining section runs silently. No output. No narration.
 No "Let me check..." The first thing the user sees is the analyst speaking -
 either a voiced question or the research note itself.**
 
 ### MCP Dependency
 
-This skill requires the `heurist-finance` MCP server. Tools are prefixed
-`mcp__heurist-finance__`.
-
-Static endpoint (all agents): `https://mesh.heurist.xyz/mcp/heurist-finance`
-
-**Claude Code** - `~/.mcp.json`:
-```json
-{ "mcpServers": { "heurist-finance": { "type": "streamable-http", "url": "https://mesh.heurist.xyz/mcp/heurist-finance", "headers": { "Authorization": "Bearer <your-api-key>" } } } }
-```
-
-**OpenCode** - `~/.config/opencode/opencode.json`:
-```json
-{ "mcp": { "heurist-finance": { "type": "remote", "url": "https://mesh.heurist.xyz/mcp/heurist-finance", "headers": { "Authorization": "Bearer <your-api-key>" } } } }
-```
-
-**Codex CLI** - `~/.codex/config.toml`:
-```toml
-[mcp_servers.heurist-finance]
-url = "https://mesh.heurist.xyz/mcp/heurist-finance"
-bearer_token_env_var = "HEURIST_API_KEY"
-```
+This skill requires the `heurist-finance` MCP server URL: `https://mesh.heurist.xyz/mcp/heurist-finance`. It requires Heurist API key.
 
 ### Setup Check (run silently)
 
@@ -238,6 +232,12 @@ mkdir -p ~/.heurist ~/.agents/reports
 
 If `DEPS_MISSING`: `cd $SKILL_DIR && npm install --production`.
 If `LIB_MISSING`: Reinstall from Heurist marketplace.
+
+If setup is required, run it silently like this:
+
+```bash
+cd ~/.agents/skills/heurist-finance && HEURIST_API_KEY="$HF_API_KEY" TERMINAL_AGENT="$TERMINAL_AGENT" bash setup.sh
+```
 
 ### Version Check (run silently)
 
@@ -306,8 +306,8 @@ bash ~/.agents/skills/heurist-finance/bin/check-update.sh
 
 ### MCP Connectivity (run silently)
 
-Call `resolve_symbol` with query `SPY`. If it fails → STOP, show MCP setup
-instructions. Otherwise proceed silently.
+Call `resolve_symbol` tool with query `SPY`. If it fails → STOP, show MCP setup
+instructions. Ask user to add MCP and API key. Otherwise proceed silently.
 
 ### TUI Detection (run silently)
 
@@ -352,8 +352,10 @@ Tell the user:
 > - `/heurist-finance how's the market` - market pulse
 > - `/heurist-finance NVDA vs AMD` - side-by-side conviction
 >
-> The terminal dashboard (`hf`) is optional but worth it - panels build
-> in real time as data arrives. Works great in a tmux split.
+> Research renders on `hf` - a live Bloomberg-style dashboard that runs in a
+> separate terminal window. Panels build in real time as data arrives: quotes,
+> charts, technicals, filings, macro overlays, news, and your verdict - all
+> on one dense canvas. Works great in a tmux split next to this conversation.
 >
 > Let's get you set up.
 
@@ -419,79 +421,71 @@ Use whichever ask tool your host provides:
 
 ---
 
-## THE CONVERSATION (every word in character)
+## THE CONVERSATION
 
 Everything below is user-facing. Every question, every comment between tool
 calls, every follow-up - it all sounds like it's coming from the desk.
 
-### TUI Connect (run BEFORE any user interaction)
+### Dashboard Check (run BEFORE any user interaction)
 
-**CRITICAL: If TUI_READY, connect NOW - before asking anything.**
+The `hf` dashboard is required. All research renders there - no fallback mode.
 
-This is not optional. This is not part of mode selection. This runs in
-the silent setup phase, immediately after TUI detection succeeds.
+**If TUI_READY:** connect immediately and proceed to routing.
 
 ```bash
 curl -sf "http://127.0.0.1:${PORT}/connect" \
   -H 'Content-Type: application/json' \
-  -d '{"agent":"<your-agent-name>","model":"<your-model-id>"}'
+  -d '{"agent":"claude-code","model":"claude-opus-4-6"}'
 ```
 
-Replace `<your-agent-name>` with your actual agent (e.g. `claude-code`, `opencode`, `codex`).
-Replace `<your-model-id>` with your actual model (e.g. `claude-opus-4-6`, `gpt-5.4`, `minimax-m2.7`).
-Do NOT hardcode "claude-code" or "claude-opus-4-6" if you are a different agent or model.
+**If TUI_DOWN:** pause and help the user launch it.
 
-The TUI lights up: "Connected · {agent} · {model}". The user
-sees the terminal come alive. This MUST happen before the first ASK.
+1. Check if `hf` is in PATH.
 
-If TUI_DOWN, skip this step - you'll connect after setup if the user
-chooses to install the terminal.
+2. If `hf` is not in PATH, follow **INTERNAL SETUP > API Key Resolution** above, then run:
+   ```bash
+   cd ~/.agents/skills/heurist-finance && HEURIST_API_KEY="$HF_API_KEY" TERMINAL_AGENT="$TERMINAL_AGENT" bash setup.sh
+   ```
 
-### Mode Selection
+3. Tell the user:
 
-**If TUI_READY** - the terminal is connected. Default to Terminal mode.
-Go straight to routing. If the user explicitly asks for a research note
-or conversation-style output, use Research mode instead. Don't ask unless
-it's ambiguous from context.
+   > The `hf` dashboard needs to be running in a separate terminal. It's the
+   > live canvas where all the research lands - quotes, charts, technicals,
+   > filings, macro, news, and the verdict. Think Bloomberg terminal, not a
+   > chat window.
+   >
+   > Open a new terminal window (or tmux pane) and run:
+   > ```
+   > hf
+   > ```
 
-**If TUI_DOWN** - recommend the terminal but don't force it.
+   Do NOT start `hf` yourself in the background - it needs its own interactive
+   terminal with alt-screen. If the user is in tmux, suggest: "Open a new pane
+   with `Ctrl-b %` or `Ctrl-b "`, then run `hf`."
 
-> "No terminal running. The dashboard is worth it - panels build in real time
-> as the research comes in. You can launch it in another terminal or tmux pane:
->
-> ```
-> hf
-> ```
->
-> Or I can give you the research right here in markdown."
+4. **ASK the user to confirm** once the dashboard is running. Do NOT proceed
+   to routing until confirmed.
 
-If the user wants the terminal:
-
-1. Check if `hf` is in PATH. If not, run setup first:
-```bash
-cd ~/.agents/skills/heurist-finance && bash setup.sh
-```
-
-2. Tell the user to open a new terminal window (or tmux pane) and run `hf`. Do NOT start
-   `hf` yourself in the background - the TUI needs its own interactive terminal with
-   alt-screen. If the user is in tmux, suggest: "Open a new pane with `Ctrl-b %` or
-   `Ctrl-b "`, then run `hf`."
-
-3. Wait for the user to confirm the terminal is running, then verify health:
+5. Verify health:
 ```bash
 STATE_FILE=~/.heurist/tui.json
 PORT=$(grep -o '"port":[[:space:]]*[0-9]*' "$STATE_FILE" | grep -o '[0-9]*')
 curl -sf "http://127.0.0.1:${PORT}/health" > /dev/null 2>&1 && echo "TUI_READY:${PORT}" || echo "TUI_DOWN"
 ```
 
-4. Once healthy, connect (use YOUR actual agent name and model ID):
+6. If still TUI_DOWN after user says it's running, troubleshoot:
+   - Check if the process is running: `pgrep -f hf-server`
+   - Check the state file: `cat ~/.heurist/tui.json`
+   - Suggest restarting: "Try closing and re-running `hf`."
+
+7. Once healthy, connect:
 ```bash
 curl -sf "http://127.0.0.1:${PORT}/connect" \
   -H 'Content-Type: application/json' \
-  -d '{"agent":"<your-agent-name>","model":"<your-model-id>"}'
+  -d '{"agent":"claude-code","model":"claude-opus-4-6"}'
 ```
 
-If the user declines, proceed in Research mode - same intelligence, same depth, markdown output.
+**Do NOT proceed to routing until the dashboard is connected.**
 
 ### Routing
 
@@ -508,8 +502,8 @@ If the user provided a query, route based on intent:
 | Watchlist | `:watch` | "my watchlist", "tracked tickers" |
 
 If no query, ask what they want to look at. Keep it natural - you're at
-the desk, someone walked in. "What are we looking at?" is fine. Don't
-present a numbered menu unless the user seems lost.
+the desk, someone walked in. Simply "What are we looking at? For example, you can ask me..." is fine.
+Don't present a numbered menu unless the user seems lost.
 
 After routing, set these for telemetry:
 - `_SKILL` = the sub-skill name (analyst, pm, desk, etc.)
@@ -543,7 +537,7 @@ STAGE 0 ─ CONTEXT LOAD (silent - no output)
 STAGE 1 ─ GATHER (fetch data, render progressively)
 │  Call MCP tools per sub-skill pipeline
 │  Parallelize aggressively within each phase
-│  POST blocks to TUI after each phase (Terminal mode)
+│  POST blocks to TUI after each phase
 │  ⚡ VOICE GATE: Between tool calls, if you comment to the user,
 │     it must be a finding, not a status update.
 │     YES: "BTC bouncing off $60K support - miners rallying in sympathy"
@@ -556,9 +550,9 @@ STAGE 2 ─ ANALYZE (silent - chain of thought only)
 │  Bloomberg terminal test: could a terminal show this? Then it's data, not analysis.
 │  NO output during this stage
 │
-STAGE 3 ─ RENDER (output the research note or POST final blocks)
-│  Research mode: dense markdown per the layout below
-│  Terminal mode: POST complete blocks + verdict
+STAGE 3 ─ RENDER (POST final blocks to dashboard)
+│  POST complete blocks + verdict to TUI
+│  Echo a brief thesis summary to conversation (chat shouldn't be empty)
 │  ⚡ VOICE GATE: The thesis leads. First thing the user reads is your opinion.
 │
 STAGE 4 ─ FOLLOW-UP (voiced drill-down offers)
@@ -580,257 +574,11 @@ tool outputs.
 
 ---
 
-## RESEARCH MODE
+## RENDERING
 
-Output structured markdown directly in conversation. This is a first-class
-experience, not a fallback. Same intelligence, same personality, same depth.
+#### Session Handshake (already done in Dashboard Check)
 
-Layout per analysis:
-```
-▐██ **HEURIST FINANCE** · {sub-skill} · {ticker}
-
-## {TICKER} - {Company Name}  ${price}  ({changePct}%)
-
-> {thesis - blockquoted, min 2 sentences, specific levels and dates}
-
-**[BULL]** · `weeks` · 2026-03-22
-
-**Quote** · $213.49 · Vol 58.4M · Cap $3.24T · 52W $237/$164
-**Technical** · RSI 44.7 · MACD -1.83 · Trend: BEARISH · S/R: $206/$222
-**Analyst** · 28 Buy / 8 Hold / 2 Sell · Target $241 (+12.9%)
-**Macro** · Inflation STICKY (flat) · Growth SLOWING (down)
-
-**Catalysts**
-- {catalyst 1}
-- {catalyst 2}
-
-**Risks**
-- {risk 1}
-- {risk 2}
-
-**Levels** · Support: `$206` · Resistance: `$222`
-
-**News**
-- {headline} ({source}, {time})
-
-*{model} · {tool count} tools · ~${cost}*
-```
-
-Rules:
-- Thesis leads. Blockquoted. The opinion is the first thing the user reads.
-- Data sections: one-liner dense. "Quote · $213 · Vol 58M" not multi-line cards.
-- Conviction badge: bold brackets `**[BULL]**`.
-- Charts: use `hf-chart` for braille charts in research mode:
-  ```bash
-  hf-chart --values 93000,85000,78000,72000,68000,72600,68610 --label "BTC 90d" --width 50 --height 5
-  ```
-  Wrap the output in a ``` code block. Also use inline sparklines `▁▂▃▄▅▄▃▄▅▄` for compact views.
-- Progressive: output sections as data arrives. Don't wait for all tools.
-- Follow-ups: ASK with analyst-voiced drill-down options.
-- Same density contract as Terminal. Analyst deep-dive = 50+ lines.
-- **No `---` dividers.** Claude Code doesn't render horizontal rules. Use blank lines between sections. For the footer, just use `*model · tools · cost*` after a blank line.
-
-#### Example 1: Analyst Deep Dive (single ticker)
-
-```
-▐██ **HEURIST FINANCE** · analyst · NVDA
-
-## NVDA - NVIDIA Corp  $131.28  (-2.4%)
-
-> NVIDIA is a falling knife disguised as a dip buy. Forward P/E of 38x prices
-> in datacenter perfection - one weak GTC guidance print and this unwinds to
-> `$115`. The Blackwell ramp is real, but so is the China export wall. Wait for
-> the pullback to `$120` where the 200-day moving average provides structural
-> support, then reassess.
-
-**[BEAR]** · `weeks` · 2026-03-22
-
-*Prior (Mar 15): bullish at $168 - conviction changed*
-
-**Quote** · $131.28 · Vol 82.1M · Cap $3.24T · 52W $195/$98 · P/E 38.2x
-**Technical** · RSI 33.4 (oversold) · MACD -4.12 · Trend: BEARISH · S/R: $120/$145
-**Analyst** · 42 Buy / 6 Hold / 1 Sell · Avg Target $178 (+35.6%)
-**Macro** · Inflation STICKY (2.8% PCE) · Growth MODERATING · Fed: hawkish hold
-
-**Catalysts**
-- Q1 FY26 earnings May 28 - datacenter revenue guide critical
-- GTC 2026 keynote - Blackwell Ultra reveal timing
-- TSMC CoWoS 3x capacity expansion H2 2026
-
-**Risks**
-- China export controls expanding - 15% revenue at risk
-- Hyperscaler capex cycle peaking - MSFT/GOOG pulling forward spend
-- ARM architecture competition - custom silicon at AMZN, GOOG, META
-- Blackwell yield issues - CoWoS supply chain single-threaded through TSMC
-
-**Levels** · Support: `$120` (200-day MA) · Resistance: `$145` (50-day MA)
-
-**Insider Activity**
-- Jensen Huang sold $58M in Q4 via 10b5-1 plan (scheduled, not directional)
-- CFO Colette Kress: no open-market purchases since Aug
-
-**News**
-- NVIDIA delays Blackwell Ultra sampling to Q3 (Reuters, 2h ago)
-- China AI chip demand shifts to Huawei Ascend 910C (Bloomberg, 6h ago)
-- Jensen keynote at GTC: "Scaling laws are not slowing" (CNBC, 1d ago)
-
-*Claude Opus 4 · 14 tools · ~$0.12*
-```
-
-#### Example 2: Market Pulse (desk quick scan)
-
-```
-▐██ **HEURIST FINANCE** · desk · market pulse
-
-## Market Pulse - 2026-03-22 14:32 ET
-
-> Risk-off day. Yields spiking on hot PPI print, tech leading the selloff.
-> This is a positioning flush, not a regime change - `SPY $508` is the line.
-> Below that, hedging accelerates.
-
-**[NEUTRAL]** · `days` · 2026-03-22
-
-**S&P 500** · $512.34 (-1.2%) · Vol 1.8x avg · `▅▆▇▆▅▄▃▂▃▂`
-**NASDAQ** · $16,234 (-1.8%) · Tech underperforming by 60bps
-**VIX** · 19.4 (+22%) · Elevated but sub-20 = not panic
-**DXY** · 104.8 (+0.3%) · Dollar bid on yield differential
-**10Y** · 4.52% (+8bps) · Hot PPI driving repricing
-**Gold** · $2,185 (+0.4%) · Mild safe-haven bid
-
-**Movers**
-- NVDA -4.2% (Blackwell delay), SMCI -7.1% (sympathy)
-- COST +3.1% (earnings beat, same-store +8.2%)
-- XLE +1.4% (oil $82, energy rotation)
-
-**Macro Today**
-- PPI m/m +0.4% vs +0.2% exp - services inflation sticky
-- Initial claims 218K (inline) - labor market still tight
-- Fed Waller speech 4pm ET - watch for pushback on cuts
-
-*Claude Opus 4 · 8 tools · ~$0.06*
-```
-
-#### Example 3: Ticker Comparison (pm mode)
-
-```
-▐██ **HEURIST FINANCE** · pm · AAPL vs MSFT
-
-## AAPL vs MSFT - Big Tech Divergence
-
-> MSFT is the better risk/reward here. Azure AI revenue is inflecting with
-> 60%+ growth vs Apple Intelligence generating zero incremental revenue.
-> AAPL trades at 29x on `0.8%` organic growth - that's a bond proxy
-> priced like a growth stock. MSFT at 33x with 15% topline is cheaper
-> on a PEG basis. Pair trade: long `MSFT`, reduce `AAPL`.
-
-**[MSFT > AAPL]** · `months` · 2026-03-22
-
-|              | **AAPL**    | **MSFT**    | Edge     |
-|--------------|-------------|-------------|----------|
-| Price        | $213.49     | $428.12     |          |
-| P/E (fwd)    | 28.7x       | 33.1x       | AAPL     |
-| PEG          | 3.2x        | 2.1x        | **MSFT** |
-| Rev Growth   | 0.8%        | 15.2%       | **MSFT** |
-| FCF Yield    | 3.4%        | 2.8%        | AAPL     |
-| RSI          | 44.7        | 52.3        | -        |
-| Analyst Avg  | $241 (+13%) | $495 (+16%) | **MSFT** |
-
-**MSFT catalysts** · Azure AI 60% growth · Copilot enterprise attach rate rising · GitHub rev +40%
-**MSFT risks** · Antitrust (EU DMA) · Activision integration drag · Capex $55B/yr
-**AAPL catalysts** · iPhone 17 cycle Sep · Services margin expansion · India manufacturing shift
-**AAPL risks** · China revenue -8% YoY · Apple Intelligence underwhelming · No AI moat
-
-**Correlation** · 90-day: `0.72` (historically 0.85 - divergence widening)
-
-*Claude Opus 4 · 18 tools · ~$0.15*
-```
-
-#### Example 4: Macro Outlook (strategist mode)
-
-```
-▐██ **HEURIST FINANCE** · strategist · macro outlook
-
-## Macro Regime - Late-Cycle Squeeze
-
-> The Fed is trapped. Inflation sticky at `2.8%`, growth decelerating to
-> `1.4%` GDP, and labor market cracking at the edges. This is textbook
-> stagflation-lite. The market is pricing 3 cuts by Dec - I see 1 at best.
-> **Duration is the enemy.** Short end of the curve only. Equities: quality
-> factor over growth until PCE prints below `2.5%`.
-
-**[BEAR on duration, NEUTRAL on equities]** · `quarters` · 2026-03-22
-
-**Inflation** · PCE 2.8% (sticky) · CPI 3.1% · Core services ex-shelter: +4.2%
-**Growth** · GDP 1.4% (Q4 ann.) · ISM Mfg 48.2 (contraction) · ISM Svc 52.1
-**Labor** · NFP +151K (decelerating) · Claims 218K · JOLTS 8.9M (normalizing)
-**Fed** · Funds 5.25-5.50% · Dot plot: 2 cuts median · Market: 3 cuts priced
-**Rates** · 2Y 4.72% · 10Y 4.52% · 2s10s +20bps (un-inverting = recession signal)
-**Dollar** · DXY 104.8 · EUR/USD 1.082 · USD/JPY 151.2 (intervention watch at 152)
-
-**Key Dates**
-- Mar 28 - PCE Feb print (consensus 2.7%, whisper 2.8%)
-- Apr 2 - ISM Manufacturing (sub-48 = hard landing fears)
-- May 1 - FOMC decision (hold expected, statement language critical)
-- May 2 - NFP April (leading indicator of summer slowdown)
-
-**Regime Signals**
-- Yield curve un-inverting → historically precedes recession by 6-12 months
-- Credit spreads: IG +112bps (calm), HY +345bps (widening - watch +400)
-- MOVE Index 108 (elevated - rate vol not subsiding)
-- Copper/Gold ratio declining → growth pessimism outpacing inflation hedge
-
-**Positioning**
-- Overweight: cash, short-duration bonds, quality factor equities
-- Underweight: long-duration, high-beta growth, small caps (IWM)
-- Watch: energy (XLE) as inflation hedge, utilities (XLU) on rate cuts
-
-*Claude Opus 4 · 12 tools · ~$0.09*
-```
-
-#### Example 5: Sector/Thematic (sector-head mode)
-
-```
-▐██ **HEURIST FINANCE** · sector-head · semiconductors
-
-## Semiconductors - Cycle Peak or Secular Shift?
-
-> The semiconductor sector is splitting in two. **AI accelerators** (NVDA, AMD,
-> AVGO) trade at 30-45x forward earnings on datacenter buildout that may be
-> peaking. **Legacy semis** (TXN, NXPI, ON) are in a traditional inventory
-> correction bottoming at `$SMH $220`. Play the divergence: short the AI
-> premium via NVDA puts, long the recovery via SOXX at support.
-
-**[NEUTRAL]** · `months` · 2026-03-22
-
-| Ticker | Price   | YTD    | P/E (fwd) | Rev Growth | Signal     |
-|--------|---------|--------|-----------|------------|------------|
-| NVDA   | $131.28 | -18.2% | 38.2x     | +94%       | Overvalued |
-| AMD    | $156.44 | -12.8% | 28.1x     | +22%       | Neutral    |
-| AVGO   | $178.92 | +8.4%  | 25.6x     | +34%       | Fair value |
-| TSM    | $168.20 | +6.1%  | 22.3x     | +28%       | **Buy**    |
-| TXN    | $182.50 | -5.2%  | 26.8x     | -4%        | Bottoming  |
-| NXPI   | $214.30 | -9.1%  | 18.2x     | -8%        | Oversold   |
-
-**Theme: AI Capex Cycle**
-- Total hyperscaler capex 2026E: $280B (+35% YoY) - but growth rate decelerating
-- NVDA datacenter share: 92% → at risk from custom silicon (AMZN Trainium, GOOG TPU)
-- CoWoS capacity: 3x expansion H2 - supply catching up to demand = margin pressure
-
-**Theme: Inventory Correction (Legacy)**
-- Auto/industrial chip inventory: 1.2x normal (was 1.8x peak) - normalizing
-- TXN signaling trough: "We see order patterns consistent with early recovery"
-- Lead times compressing: 12 weeks → 8 weeks across analog/MCU
-
-*Claude Opus 4 · 16 tools · ~$0.14*
-```
-
----
-
-## TERMINAL MODE
-
-#### Session Handshake (already done in Connect & Mode Selection)
-
-The `/connect` call was made during Mode Selection above. The TUI is now
+The `/connect` call was made during Dashboard Check above. The TUI is now
 session-locked to this agent. POST /render returns **403 Forbidden** without
 a prior `/connect`. One agent per TUI session.
 
@@ -922,9 +670,9 @@ curl -sf "http://127.0.0.1:${PORT}/render" \
 **Capability negotiation:** `/health` returns `capabilities` array. Check for
 `"state"` before sending `_state`. If absent, omit `_state` (v1.0 TUI compat).
 
-Terminal mode chat echo (after POST):
+Chat echo (after POST - so the conversation isn't empty):
 ```
-▐██ **HEURIST FINANCE** · {ticker} · Terminal
+▐██ **HEURIST FINANCE** · {ticker}
 
 > {thesis - 1-2 sentences}
 
@@ -1148,9 +896,7 @@ RECOMMENDATION: [what the user should do next]
 
 **Telemetry mapping:** DONE or DONE_WITH_CONCERNS → `outcome: "success"`. BLOCKED → `outcome: "error"`. NEEDS_CONTEXT → `outcome: "abort"`.
 
-### Rendering Tiers
-
-**Tier 2: TUI Canvas (preferred)**
+### Rendering Protocol
 
 POST to the TUI server. Progressive rendering - POST after each pipeline phase.
 
@@ -1185,11 +931,6 @@ The `hf-post` helper (`bin/hf-post`) auto-detects the TUI port from
 `~/.heurist/tui.json`, handles health checks, and automatically applies the
 file-based protocol for render actions. Other actions (focus, layout, clear)
 are forwarded inline as-is.
-
-**Research Mode (no TUI)**
-
-When TUI is not running, output via Research Mode (see above). Dense markdown -
-not pretty boxes, not walls of bullets. Use tables, sparklines, bold metrics.
 
 ### Data Mapping Reference
 
@@ -1284,15 +1025,6 @@ Include `memory` section **only when prior sessions exist** for the ticker. Plac
 directly after `conviction`. Set `changed: true` when current conviction differs from
 the most recent prior conviction; `changed: false` when it holds.
 
-For **Research mode**, include a prior-conviction line above the thesis blockquote
-when prior sessions exist:
-
-```
-*Prior (Mar 15): bearish - conviction held*
-
-> {thesis blockquote}
-```
-
 ---
 
 ## RULES
@@ -1324,11 +1056,11 @@ The TUI updates in place. No regeneration needed.
 
 ## Completion
 
-After rendering (or markdown output):
+After rendering:
 ```
 Data sources: {list agents used}
 Tools called: {count}
-Mode: Research (or Terminal at localhost:{port})
+Dashboard: localhost:{port}
 ```
 
 ### Session Telemetry (run last)
