@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://misc-files.heurist.xyz/split-demo.mp4">Watch the 18-second product demo</a></strong>
+  <strong><a href="https://misc-files.heurist.xyz/split-demo.mp4">Watch the product demo</a></strong>
 </p>
 
 ---
@@ -92,11 +92,13 @@ conviction and flags when the view has changed.
   <img src="docs/screenshots/NVDA.png" width="720" alt="NVDA deep-dive dashboard" />
 </p>
 
-## Terminal
+## Terminal Operations
 
 ```bash
 hf
 ```
+
+User will navigate the terminal:
 
 | Key | Action |
 |-----|--------|
@@ -107,7 +109,9 @@ hf
 | `?` | Help overlay |
 | `q` | Return to splash / quit |
 
-Or skip the terminal. Drop `/heurist-finance NVDA` into your agent and get the research inline:
+## Response
+
+Reply to user queries `/heurist-finance NVDA` with research inline:
 
 ```
 **[BEAR]** - `months` - 2026-03-24
@@ -138,7 +142,7 @@ Above $197 on volume invalidates the bear case.
 *claude-sonnet-4-6 - 12 tools - ~$0.08*
 ```
 
-Same data, same analysts, same conviction - whether you're in the terminal or reading markdown. The terminal adds progressive rendering and the Bloomberg feel. Research mode gives you the thesis right in your conversation.
+Same data, same analysts, same conviction - whether you're in the terminal or reading markdown. The terminal adds progressive rendering and the Bloomberg feel. You also give the thesis right in your conversation.
 
 ## Why This Exists
 
@@ -180,18 +184,18 @@ and lives inside your agent stack.
   └──────────┘
 ```
 
-Heurist Finance is an **MCP skill**. One install, any agent. It connects your
-agent to [Heurist Mesh](https://mesh.heurist.ai) - a marketplace of MCP tools
+Heurist Finance is an **agent skill**. One install, any agent. It connects your
+agent to [Heurist Mesh](https://mesh.heurist.ai) - a marketplace of skills and tools
 that handle the data plumbing.
 
 | Layer | What it does |
 |-------|-------------|
 | **Prompt architecture** | 8 SKILL.md files route queries, enforce density contracts, anchor analyst voice |
 | **Schema coercion** | Normalizes messy agent output at the render boundary - any model works |
-| **Block engine** | Agent composes layouts freely - panels, rows, stacks, tables, gauges |
+| **Visualization engine** | Agent composes layouts freely - panels, rows, stacks, tables, gauges |
 | **Progressive rendering** | Patch-based streaming - panels build as data arrives, not all at once |
 
-**Data sources** - 25 tools, fetched in real-time via MCP:
+**Data sources**
 
 | Source | Coverage |
 |--------|----------|
@@ -206,6 +210,7 @@ Built by [Heurist AI](https://heurist.ai) as a [Heurist Mesh](https://mesh.heuri
 
 - Issues and feedback: [GitHub Issues](https://github.com/heurist-network/heurist-finance/issues)
 - Heurist community: [Discord](https://discord.gg/heuristai)
+- Follow us on X: [X/Twitter](x.com/heurist_ai)
 
 ## License
 
