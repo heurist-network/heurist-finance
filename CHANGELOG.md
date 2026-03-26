@@ -2,6 +2,28 @@
 
 All notable changes to Heurist Finance are documented here.
 
+## [0.9.13] - 2026-03-26
+
+### Added
+- **Sub-skill: options** — single-ticker options analysis (chains, OI skew, put/call ratio, max pain, suggested structures). MCP tools: `options_expirations`, `options_chain`.
+- **Sub-skill: futures** — futures & commodities regime analysis (energy, metals, rates, equity index). MCP tool: `futures_snapshot`.
+- **MCP tools deployed**: `futures_snapshot`, `options_expirations`, `options_chain`. Known bug: `limit`/`limit_contracts` params cause type error when passed explicitly — use defaults.
+
+### Changed
+- **Skill renames**: `pm` → `compare`, `strategist` → `macro`, `sector-head` → `sector`. Routing table, sub-skill files, and all references updated.
+- **SKILL.md**: table block format corrected from `columns`/`rows` to `headers`/`rows[].cells` to match `terminal/engine.js` implementation.
+- **terminal/splash.js**: desk grid updated with new skill names + options/futures entries.
+- **README.md**: skill table updated — 9 research modes (was 7).
+- **ARCHITECTURE.md**: directory tree updated with renamed + new skill dirs.
+- **MARKETING.md**: skill table updated with new names + options/futures.
+- **gtm/**: research prompts and positioning updated from 7 to 9 modes, old names replaced.
+
+### Fixed
+- **package-lock.json**: regenerated to match current `package.json` after dependency cleanup (removed stale `@modelcontextprotocol/sdk`, `ink`, `react` lockfile entries).
+
+### Engineering
+- **terminal/render.test.js**: test fixtures updated from `pm` to `compare`.
+
 ## [0.9.1] - 2026-03-23
 
 ### Hardening

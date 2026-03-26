@@ -23,11 +23,13 @@ export const SPINNER_FRAMES = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','
 
 export const DESK = [
   ['/analyst',     'deep-dives, SEC filings, and the view that matters'],
-  ['/pm',          'side-by-side conviction · 2–5 names, one winner'],
-  ['/strategist',  'rates, inflation, growth — the regime behind the trade'],
-  ['/sector-head', 'rotations, thematics, and the names moving money'],
+  ['/compare',     'side-by-side conviction · 2–5 names, one winner'],
+  ['/macro',       'rates, inflation, growth — the regime behind the trade'],
+  ['/sector',      'rotations, thematics, and the names moving money'],
   ['/desk',        'market pulse · 3 seconds · everything that matters'],
   ['/risk',        'event impact · catalyst timing · what could go wrong'],
+  ['/options',     'chains, OI skew, positioning — where smart money leans'],
+  ['/futures',     'commodities, rates futures — the cross-asset tape'],
   ['/watch',       'watchlist · what moved · conviction logged'],
 ];
 

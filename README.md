@@ -57,11 +57,13 @@ Every seat takes a position.
 | Command | Analyst | What they do |
 |---------|---------|-------------|
 | `/analyst` | Senior Equity Analyst | Deep-dives, SEC filings, and the view that matters |
-| `/pm` | Portfolio Manager | Side-by-side conviction. 2-5 names, one winner |
-| `/strategist` | Chief Macro Strategist | Rates, inflation, growth - the regime behind the trade |
-| `/sector-head` | Sector Head | Rotations, thematics, and the names moving money |
+| `/compare` | Portfolio Manager | Side-by-side conviction. 2-5 names, one winner |
+| `/macro` | Chief Macro Strategist | Rates, inflation, growth - the regime behind the trade |
+| `/sector` | Sector Head | Rotations, thematics, and the names moving money |
 | `/desk` | Trading Desk | Market pulse. Everything that matters, fast |
 | `/risk` | Risk Analyst | Event impact. Catalyst timing. What could go wrong |
+| `/options` | Options Strategist | Chains, OI skew, positioning - where smart money leans |
+| `/futures` | Commodities Strategist | Futures, commodities, rates - the cross-asset tape |
 | `/watch` | Watchlist Monitor | Your names. Tracked. Alerted. Conviction logged |
 
 Most AI finance tools hedge everything. *"The stock may be experiencing

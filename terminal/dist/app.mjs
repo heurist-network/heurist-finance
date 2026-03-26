@@ -1045,7 +1045,7 @@ var ANALYTICS_MAX_BYTES = 5 * 1024 * 1024;
 var VALID_ACTIONS = /* @__PURE__ */ new Set(["render", "focus", "layout", "clear"]);
 var _require = createRequire(import.meta.url);
 function _resolveVersion() {
-  if (true) return "0.9.12";
+  if (true) return "0.9.13";
   try {
     return _require("../package.json").version;
   } catch {
@@ -3598,7 +3598,7 @@ import os3 from "os";
 import { createRequire as createRequire2 } from "module";
 var _require2 = createRequire2(import.meta.url);
 function _resolveVersion2() {
-  if (true) return "0.9.12";
+  if (true) return "0.9.13";
   try {
     return _require2("../package.json").version;
   } catch {
@@ -3727,11 +3727,13 @@ var PULSE_COLORS = [
 var SPINNER_FRAMES = ["\u280B", "\u2819", "\u2839", "\u2838", "\u283C", "\u2834", "\u2826", "\u2827", "\u2807", "\u280F"];
 var DESK = [
   ["/analyst", "deep-dives, SEC filings, and the view that matters"],
-  ["/pm", "side-by-side conviction \xB7 2\u20135 names, one winner"],
-  ["/strategist", "rates, inflation, growth \u2014 the regime behind the trade"],
-  ["/sector-head", "rotations, thematics, and the names moving money"],
+  ["/compare", "side-by-side conviction \xB7 2\u20135 names, one winner"],
+  ["/macro", "rates, inflation, growth \u2014 the regime behind the trade"],
+  ["/sector", "rotations, thematics, and the names moving money"],
   ["/desk", "market pulse \xB7 3 seconds \xB7 everything that matters"],
   ["/risk", "event impact \xB7 catalyst timing \xB7 what could go wrong"],
+  ["/options", "chains, OI skew, positioning \u2014 where smart money leans"],
+  ["/futures", "commodities, rates futures \u2014 the cross-asset tape"],
   ["/watch", "watchlist \xB7 what moved \xB7 conviction logged"]
 ];
 var MCP_AGENTS = ["yahoo", "fred", "sec", "exa"];

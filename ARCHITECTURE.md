@@ -32,11 +32,13 @@ heurist-finance/
 +-- SKILL.md              # Main skill - routing + MCP tool reference
 +-- skills/               # Sub-skills (one per research mode)
 |   +-- analyst/          # Single-ticker analysis
-|   +-- pm/               # Portfolio manager view
-|   +-- strategist/       # Macro/strategy
-|   +-- sector-head/      # Sector/thematic
+|   +-- compare/          # Multi-ticker comparison
+|   +-- macro/            # Macro/strategy
+|   +-- sector/           # Sector/thematic
 |   +-- desk/             # Broad market snapshot
 |   +-- risk/             # Risk/event impact
+|   +-- options/          # Single-ticker options analysis
+|   +-- futures/          # Futures & commodities
 |   +-- watch/            # Tracked tickers
 +-- src/                  # Component library
 |   +-- components/       # 20 terminal widgets + tests + snapshots
