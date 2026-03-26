@@ -139,14 +139,28 @@ fetching Phase 3 data" is narration. Never narrate.
 Parallelize within each phase. Start Phase 2 the moment Phase 1 completes.
 Never wait for all phases before posting to TUI - render after each phase.
 
-### Phase 1 - Symbol Resolution (always, parallel)
+### Phase 1 - Symbol Resolution (always; Yahoo first, then SEC)
+
+**Step 1 — Yahoo resolution:**
 
 ```
 mcp__heurist-finance__yahoofinanceagent_resolve_symbol   { query: "<ticker or name>" }
-mcp__heurist-finance__secedgaragent_resolve_company      { query: "<ticker or name>" }
 ```
 
-Store: `yahoo_symbol`, `cik`. Phase 1 result → POST quote panel skeleton immediately.
+Apply the Ticker Resolution rules from `../../SKILL.md`. Store `yahoo_symbol`,
+`company_name`, `asset_type`, and `base_ticker`.
+
+**Step 2 — SEC resolution (only after Yahoo is settled):**
+
+```
+mcp__heurist-finance__secedgaragent_resolve_company { query: "<company_name> <base_ticker>" }
+```
+
+Do NOT run SEC resolution in parallel with Yahoo — it depends on the resolved
+company name. Skip SEC entirely for non-US listings (`.L`, `.AX`, `.TO`,
+`.DE`, `.HK`, etc.) unless the user explicitly asks for SEC filings.
+
+Store: `yahoo_symbol`, optional `cik`. Phase 1 result → POST quote panel skeleton immediately.
 
 ### Phase 2 - Market Data (always, parallel)
 

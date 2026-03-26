@@ -309,6 +309,22 @@ bash ~/.agents/skills/heurist-finance/bin/check-update.sh
 Call `resolve_symbol` tool with query `SPY`. If it fails → STOP, show MCP setup
 instructions. Ask user to add MCP and API key. Otherwise proceed silently.
 
+### Ticker Resolution
+
+After `resolve_symbol`, `matches[0]` is usually correct. Check for ambiguity
+only when the same root ticker maps to multiple real securities:
+
+- If the user specified `stock`, `ETF`, an exchange suffix (`.L`, `.AX`, `.TO`,
+  `.DE`, `.HK`), a country, or a full company name — that resolves any ambiguity.
+  Use it and go.
+- **Ask the user only when** 2+ plausible candidates share the same root symbol
+  and the user's wording doesn't pick one. Examples: `BHP` (US ADR) vs `BHP.AX`
+  (Australian listing), `SHOP` vs `SHOP.TO`, same ticker as both stock and ETF.
+- Do **not** ask just because fuzzy neighbors with different ticker strings
+  appear in `matches[]`. That's the resolver working normally.
+- When genuinely ambiguous: pause, name the top candidates in one line, wait for
+  the user to pick.
+
 ### TUI Detection (run silently)
 
 ```bash
