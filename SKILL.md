@@ -774,7 +774,7 @@ Shorthand also works: `{ "quote": { "symbol": "NVDA", ... } }` is equivalent to
 | divider | `{ "divider": "LABEL" }` | Section separator |
 | text | `{ "text": "..." }` | Free-form ANSI text |
 | spacer | `{ "spacer": 1 }` | Vertical spacing |
-| table | `{ "table": { "columns": [...], "rows": [...] } }` | Arbitrary tabular data |
+| table | `{ "table": { "headers": [...], "rows": [{ "cells": [...] }], "align?": [...] } }` | Arbitrary tabular data |
 | stack | `{ "stack": [...blocks] }` | Vertical grouping |
 
 #### Header Block
