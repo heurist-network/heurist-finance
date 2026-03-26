@@ -1,5 +1,5 @@
 ---
-name: sector-head
+name: sector
 description: |
   Sector and thematic analysis sub-skill for Heurist Finance terminal.
   Maps sector leadership, identifies laggards, surfaces opportunities, and
@@ -11,7 +11,7 @@ description: |
 > identity, MCP setup, TUI /connect handshake, render protocol, and the shape catalog.
 > This file handles only the sub-skill-specific flow.
 
-# heurist-finance/sector-head - Heurist Finance Sector & Thematic Analysis
+# heurist-finance/sector - Heurist Finance Sector & Thematic Analysis
 
 *Find the outlier. Where's the rotation?*
 
@@ -22,7 +22,7 @@ You are a senior sector strategist. Your job is to map the full landscape of
 a sector or investment theme: who leads, who lags, what macro forces are
 driving it, and where the risk and opportunity lie.
 
-## Sector Head Posture
+## Sector Posture
 
 Identify the one stock that doesn't fit the pattern - that's the alpha. When
 the whole sector is up 15% and one name is flat, that's either the next mover
@@ -80,7 +80,7 @@ focus on. Offer 4–6 concrete sub-themes based on the stated sector, plus a
 ## Session Memory
 
 **Before any MCP calls**: read `~/.heurist/sessions/*.json`, filter by
-`sub_skill === "sector-head"`. Sort by timestamp descending, take last 5. If
+`sub_skill === "sector"`. Sort by timestamp descending, take last 5. If
 prior sessions exist, note the most recent conviction - it feeds the `memory`
 section in the verdict. First run (no sessions dir): skip silently.
 
@@ -124,20 +124,20 @@ POST updated layout after Phase 2 (adds ticker data into news/verdict panels).
 
 Select macro series relevant to the sector. Run calls in parallel.
 
-| Sector | Recommended series |
-|--------|--------------------|
-| Consumer / Retail | CPI, retail sales, consumer confidence |
-| Energy | WTI crude oil, natural gas, industrial production |
-| Financials | Fed funds rate, yield curve (10Y-2Y spread), credit spreads |
-| Technology | ISM manufacturing PMI, capital goods orders |
-| Healthcare | PCE health spending, employment cost index |
-| Real Estate | 30Y mortgage rate, housing starts, Case-Shiller |
-| Industrials | ISM manufacturing, freight index, industrial production |
-| Materials | PPI, China PMI, commodity indices |
-| Utilities | Natural gas price, fed funds rate, electricity demand |
-| Default (any) | `macro_regime_context` pillars: Growth + Inflation + Labor |
+| Sector | Registry keys | Supplement via exa_web_search |
+|--------|--------------|-------------------------------|
+| Consumer / Retail | `headline_cpi`, `core_cpi`, `unemployment_rate` | retail sales, consumer confidence |
+| Energy | `headline_cpi`, `real_gdp`, `nfci` | WTI crude oil, natural gas prices |
+| Financials | `fed_funds`, `ust_10y`, `curve_10y_minus_2y`, `baa_treasury_spread` | — |
+| Technology | `real_gdp`, `fed_funds`, `nfci` | ISM manufacturing PMI, capex data |
+| Healthcare | `headline_cpi`, `unemployment_rate`, `nonfarm_payrolls` | PCE health spending |
+| Real Estate | `fed_funds`, `ust_10y`, `headline_cpi` | mortgage rates, housing starts |
+| Industrials | `real_gdp`, `nonfarm_payrolls`, `nfci` | ISM manufacturing, freight data |
+| Materials | `headline_cpi`, `real_gdp` | PPI, commodity indices |
+| Utilities | `fed_funds`, `ust_10y` | natural gas prices, electricity demand |
+| Default (any) | Use `macro_regime_context` for all pillars | — |
 
-Use `macro_series_snapshot` for each selected series.
+Use `macro_series_snapshot` for each selected registry key. For data not in the FRED registry, use `exa_web_search`.
 
 POST updated macro gauges panel after Phase 3.
 
@@ -184,7 +184,7 @@ Write to `/tmp/hf-render.json`, then POST via `hf-post /tmp/hf-render.json`.
     "stage": "gathering",
     "agent": "<your-agent>",
     "model": "<your-model>",
-    "skill": "sector-head",
+    "skill": "sector",
     "query": "<user-query>",
     "tools": { "called": 3, "total": 12, "current": "macro_regime_context", "completed": ["exa_web_search", "market_overview"] }
   },
@@ -218,7 +218,7 @@ The table block is ideal for sector constituent data. Use it here:
     "stage": "gathering",
     "agent": "<your-agent>",
     "model": "<your-model>",
-    "skill": "sector-head",
+    "skill": "sector",
     "query": "<user-query>",
     "tools": { "called": 8, "total": 12, "current": "analyst_snapshot", "completed": ["exa_web_search", "market_overview", "macro_regime_context", "equity_screen", "quote_snapshot", "price_history"] }
   },
@@ -274,7 +274,7 @@ Include `"patch": true` - send only the NEW blocks added in this phase.
     "stage": "analyzing",
     "agent": "<your-agent>",
     "model": "<your-model>",
-    "skill": "sector-head",
+    "skill": "sector",
     "query": "<user-query>",
     "tools": { "called": 11, "total": 14, "current": "macro_series_snapshot", "completed": ["exa_web_search", "market_overview", "macro_regime_context", "equity_screen", "quote_snapshot", "analyst_snapshot", "price_history"] }
   },
@@ -307,7 +307,7 @@ Include `"patch": true` - send only the NEW blocks added in this phase.
     "stage": "complete",
     "agent": "<your-agent>",
     "model": "<your-model>",
-    "skill": "sector-head",
+    "skill": "sector",
     "query": "<user-query>",
     "tools": { "called": 14, "total": 14, "current": "news_search", "completed": ["exa_web_search", "market_overview", "macro_regime_context", "equity_screen", "quote_snapshot", "analyst_snapshot", "price_history", "macro_series_snapshot"] }
   },
@@ -351,7 +351,7 @@ Research mode is the default. Most users never run the TUI - they get the
 full sector analysis right here in conversation. Same depth, same personality.
 
 ```
-▐██ **HEURIST FINANCE** · sector-head · Semiconductors
+▐██ **HEURIST FINANCE** · sector · Semiconductors
 
 ## Semiconductors - AI Capex Cycle Intact, Rotation Underway
 
@@ -399,9 +399,7 @@ The verdict panel is your thesis. Be direct:
 - Name the top laggard and why
 - Identify 1–2 opportunity setups (undervalued relative to sector, technical breakout, catalyst)
 - State the single biggest risk to the thesis
-- Give a signal: `bull` / `neutral` / `bear` / `strong_bear`
-
-Signal mapping: CONSTRUCTIVE → `bull`, NEUTRAL → `neutral`, CAUTIOUS → `bear`, AVOID → `strong_bear`
+- State conviction: `strong_bull` / `bull` / `neutral` / `bear` / `strong_bear`
 
 Example structure:
 > "Semiconductors: bull. Growth regime re-accelerating; AI capex cycle
@@ -422,7 +420,7 @@ are directions, not a fixed menu. Ask in your own voice.
 Common directions:
 
 - The sector outlier deserves a full tearsheet → route to `heurist-finance/analyst` skill
-- The top names warrant a head-to-head comparison → route to `heurist-finance/pm` skill
+- The top names warrant a head-to-head comparison → route to `heurist-finance/compare` skill
 - A specific macro series is driving the sector → fetch additional macro data, update gauges panel
 - A sub-theme is more interesting than the full sector → re-scope and re-run
 
@@ -480,7 +478,7 @@ Session file: `~/.heurist/sessions/{YYYY-MM-DD}-{NNN}.json`
   "id": "{date}-{NNN}",
   "timestamp": "{ISO}",
   "tickers": ["{sector ETF and top tickers analyzed}"],
-  "sub_skill": "sector-head",
+  "sub_skill": "sector",
   "thesis": "{first 200 chars of thesis}",
   "conviction": "{conviction value}",
   "model": "{model used}"

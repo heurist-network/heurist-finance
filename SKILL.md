@@ -109,18 +109,18 @@ they shape every decision from tool selection to thesis framing.
 
 ### Fill the Canvas
 
-20 components exist because each one represents a dimension of analysis.
-Skipping 15 of them is like writing a research report that only covers
-price action and ignores fundamentals, macro, and sentiment.
+The shape catalog defines ~20 panel components, each representing a dimension
+of analysis. Skipping most of them is like writing a research report that only
+covers price action and ignores fundamentals, macro, and sentiment.
 
 The shape catalog maps every MCP response to a panel. A deep dive into NVDA
 that renders quote + chart + verdict is a thumbnail sketch. Add insiders,
 filings, earnings, institutional holders, macro overlay, analyst consensus,
 news, technicals, correlation matrix - now you have a tearsheet.
 
-**Density Score:** panels rendered / panels possible. Below 60% on a deep
-dive = go back and fetch more data. You have 25 MCP tools. A deep dive uses
-12+. A quick look uses 3-5. Time isn't the constraint - thoroughness is.
+**Density Score:** panels rendered / panels relevant to query type. Below 60%
+on a deep dive = go back and fetch more data. You have 25 MCP tools. A deep
+dive uses 12+. A quick look uses 3-5. Time isn't the constraint - thoroughness is.
 
 | Query Type | Tool Budget | Panel Target | Density Floor |
 |-----------|-------------|-------------|--------------|
@@ -143,7 +143,7 @@ Why this matters: perceived performance IS performance. A terminal that shows
 quote + chart in 3 seconds and grows to 15 panels over 20 seconds feels fast.
 A terminal that shows nothing for 20 seconds and dumps 15 panels feels broken.
 
-The first POST goes out after the first 3 tools return. Each subsequent phase
+The first POST goes out after the first phase completes. Each subsequent phase
 adds panels. The TUI accumulates - you never re-send what's already rendered.
 
 ### Every Number Tells a Story
@@ -494,11 +494,13 @@ If the user provided a query, route based on intent:
 | Intent | Sub-skill | Example |
 |--------|-----------|---------|
 | Single ticker | `heurist-finance/analyst` | "NVDA", "what do you think about Apple" |
-| Compare | `heurist-finance/pm` | "NVDA vs AMD", "compare big tech" |
-| Sector | `heurist-finance/sector-head` | "semiconductors", "AI stocks" |
-| Macro | `heurist-finance/strategist` | "inflation outlook", "what's the Fed doing" |
+| Compare | `heurist-finance/compare` | "NVDA vs AMD", "compare big tech" |
+| Sector | `heurist-finance/sector` | "semiconductors", "AI stocks" |
+| Macro | `heurist-finance/macro` | "inflation outlook", "what's the Fed doing" |
 | Market overview | `heurist-finance/desk` | "how's the market", "pulse" |
 | Event | `heurist-finance/risk` | "FOMC impact", "tariff analysis" |
+| Options | `heurist-finance/options` | "AAPL options", "show me the chain for TSLA", "put/call ratio" |
+| Futures/Commodities | `heurist-finance/futures` | "oil futures", "gold", "commodity dashboard", "CL=F" |
 | Watchlist | `heurist-finance/watch` | "my watchlist", "tracked tickers" |
 
 If no query, ask what they want to look at. Keep it natural - you're at
@@ -506,18 +508,20 @@ the desk, someone walked in. Simply "What are we looking at? For example, you ca
 Don't present a numbered menu unless the user seems lost.
 
 After routing, set these for telemetry:
-- `_SKILL` = the sub-skill name (analyst, pm, desk, etc.)
+- `_SKILL` = the sub-skill name (analyst, compare, desk, etc.)
 - `_QUERY` = the user's original query text
 
 ### Sub-skill Files
 
 ```
 skills/analyst/SKILL.md      → heurist-finance/analyst
-skills/pm/SKILL.md           → heurist-finance/pm
-skills/strategist/SKILL.md   → heurist-finance/strategist
-skills/sector-head/SKILL.md  → heurist-finance/sector-head
+skills/compare/SKILL.md      → heurist-finance/compare
+skills/macro/SKILL.md        → heurist-finance/macro
+skills/sector/SKILL.md       → heurist-finance/sector
 skills/desk/SKILL.md         → heurist-finance/desk
 skills/risk/SKILL.md         → heurist-finance/risk
+skills/options/SKILL.md      → heurist-finance/options
+skills/futures/SKILL.md      → heurist-finance/futures
 skills/watch/SKILL.md        → heurist-finance/watch
 ```
 
@@ -662,8 +666,8 @@ curl -sf "http://127.0.0.1:${PORT}/render" \
 ```json
 "follow_ups": [
   { "key": "1", "label": "Drill into fundamentals", "cmd": "/heurist-finance use analyst skill. NVDA" },
-  { "key": "2", "label": "Compare with AMD", "cmd": "/heurist-finance use pm skill. NVDA AMD" },
-  { "key": "3", "label": "Macro impact", "cmd": "/heurist-finance use strategist skill. Semiconductors macro impact" }
+  { "key": "2", "label": "Compare with AMD", "cmd": "/heurist-finance use compare skill. NVDA AMD" },
+  { "key": "3", "label": "Macro impact", "cmd": "/heurist-finance use macro skill. Semiconductors macro impact" }
 ]
 ```
 
@@ -707,6 +711,9 @@ Technical reference for agent internals. The user never sees this section direct
 | `quote_snapshot` | Current price, volume, cap |
 | `price_history` | OHLCV bars |
 | `technical_snapshot` | Trend, momentum, volatility |
+| `options_expirations` | Discover available option expirations for an underlying |
+| `options_chain` | Options chain snapshot with OI, volume, greeks for one expiration |
+| `futures_snapshot` | Compact futures quote + recent trend (prefer over quote_snapshot for futures) |
 | `news_search` | Recent headlines |
 | `market_overview` | Market-wide benchmarks |
 | `company_fundamentals` | Profile, earnings |
@@ -859,8 +866,8 @@ Before setting `_state.stage` to `"complete"`, count your panels:
 | Query Type | Min Panels | If Below Minimum |
 |-----------|-----------|------------------|
 | analyst   | 12        | Call more tools. Use more components. |
-| pm        | 8         | Add comparison tables, correlation matrix. |
-| strategist| 8         | Add rate charts, FRED series, calendar. |
+| compare   | 8         | Add comparison tables, correlation matrix. |
+| macro     | 8         | Add rate charts, FRED series, calendar. |
 | desk      | 6         | Add movers, sector performance, VIX. |
 
 If you're below the minimum, you're not done. Go back and use more of
@@ -871,9 +878,9 @@ Reference targets (not the gate - the gate is above):
 | Query Type | Sub-skill | Min Tools | Target Rows |
 |-----------|-----------|-----------|-------------|
 | Full Report | :analyst | 8-12 | 50+ |
-| Comparison | :pm | 6-10 | 40+ |
-| Macro Brief | :strategist | 5-8 | 35+ |
-| Sector Scan | :sector-head | 6-10 | 40+ |
+| Comparison | :compare | 6-10 | 40+ |
+| Macro Brief | :macro | 5-8 | 35+ |
+| Sector Scan | :sector | 6-10 | 40+ |
 | Market Pulse | :desk | 4-6 | 25+ |
 
 ### Completion Status Protocol

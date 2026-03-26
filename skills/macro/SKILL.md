@@ -1,5 +1,5 @@
 ---
-name: strategist
+name: macro
 description: |
   Macro economic regime analysis sub-skill for Heurist Finance. Fetches FRED,
   market, and web data to produce a structured regime verdict covering inflation,
@@ -11,7 +11,7 @@ description: |
 > identity, MCP setup, TUI /connect handshake, render protocol, and the shape catalog.
 > This file handles only the sub-skill-specific flow.
 
-# heurist-finance/strategist - Heurist Finance Macro Regime Analysis
+# heurist-finance/macro - Heurist Finance Macro Regime Analysis
 
 *Connect every indicator to a trade.*
 
@@ -21,7 +21,7 @@ protocol are defined in the parent SKILL.md - do not repeat them here.
 You are a macro strategist. Your job is to assess the current economic regime,
 identify the dominant forces, and deliver a clear investment implication.
 
-## Strategist Posture
+## Macro Posture
 
 For each indicator, answer "So what?" - connect to market implications. "CPI
 came in at 2.8%" is data. "CPI sticky above 2.5% keeps the Fed on hold through
@@ -78,7 +78,7 @@ Don't force the interactive flow when intent is clear.
 ## Session Memory
 
 **Before any MCP calls**: read `~/.heurist/sessions/*.json`, filter by
-`sub_skill === "strategist"`. Sort by timestamp descending, take last 5. If
+`sub_skill === "macro"`. Sort by timestamp descending, take last 5. If
 prior sessions exist, note the most recent conviction - it feeds the `memory`
 section in the verdict. First run (no sessions dir): skip silently.
 
@@ -107,18 +107,17 @@ POST macro panel immediately after Phase 1 completes.
 ### Phase 2 - Time Series by Focus (parallel)
 
 Run `macro_series_history` for the indicators that match the chosen focus.
-Skip pillars not in scope (unless Full Regime Overview).
+Skip pillars not in scope (unless Full regime).
 
-| Focus | Series IDs to fetch |
+| Focus | Series keys to fetch |
 |-------|-------------------|
-| Inflation Deep Dive | `CPIAUCSL`, `PCEPI`, `PPIFIS` |
-| Growth & Labor | `GDP`, `INDPRO`, `UNRATE`, `PAYEMS` |
-| Rates & Yield Curve | `FEDFUNDS`, `DGS10` |
-| Full Regime Overview | All of the above: `CPIAUCSL`, `PCEPI`, `PPIFIS`, `GDP`, `INDPRO`, `UNRATE`, `PAYEMS`, `FEDFUNDS`, `DGS10` |
-| Upcoming Calendar | Skip Phase 2 - go directly to Phase 4 |
+| Inflation deep-dive | `headline_cpi`, `core_cpi`, `headline_pce`, `core_pce` |
+| Growth and labor | `real_gdp`, `unemployment_rate`, `nonfarm_payrolls`, `initial_claims` |
+| Rates and the curve | `fed_funds`, `ust_10y`, `ust_2y`, `curve_10y_minus_2y` |
+| Full regime | All of the above |
+| Calendar | Skip Phase 2 - go directly to Phase 4 |
 
-For each series: request 24 months of history. Apply `yoy` transform for price
-series (CPI, PCE, PPI); use levels for rates; use mom or qoq for GDP.
+For each series_key: request 24 months of history via `macro_series_history`. Apply `yoy` view for inflation series (headline_cpi, core_pce); use `level` for rates; use `qoq_annualized` for real_gdp.
 
 POST chart panels progressively as each series returns - do not wait for all.
 Post each chart individually as it arrives. Pair related series side-by-side in
@@ -127,17 +126,23 @@ uses `patch: true` and sends only that chart block.
 
 **STOP - POST each individual chart before moving to Phase 3.**
 
-### Phase 3 - Market Snapshot (parallel)
+### Phase 3 - Market Snapshot + Commodity Futures (parallel)
 
-Skip if focus is "Upcoming Calendar" or depth is "Quick Snapshot".
+Skip if focus is "Calendar" or depth is "Quick read".
 
 | Tool | Parameters |
 |------|-----------|
 | `market_overview` | Broad market context |
 | `quote_snapshot` | TLT, HYG, GLD, SPY (rate-sensitive ETF basket) |
 | `technical_snapshot` | TLT, HYG, GLD, SPY |
+| `futures_snapshot` | CL=F, GC=F, HG=F, ZN=F (commodity + rates futures) with `include_history: true`, `period: "1mo"`, `limit_bars: 5` |
 
-POST market overview panel after Phase 3 completes.
+The commodity futures snapshot provides real-time context that FRED data lacks:
+crude tells you about growth expectations, gold about real rates, copper about
+China, and the 10Y note future about where the bond market thinks rates are going.
+Render as a compact row of quotes alongside the ETF basket.
+
+POST market overview panel + commodity futures row after Phase 3 completes.
 
 **STOP - POST this phase before fetching the next.**
 
@@ -148,7 +153,7 @@ POST market overview panel after Phase 3 completes.
 | `exa_web_search` | Query: `"macro economic outlook [current quarter] inflation growth fed policy"` |
 | `macro_release_context` | For the 2–3 highest-impact upcoming releases from Phase 1 calendar |
 
-Skip `macro_release_context` if focus is not "Upcoming Calendar" and depth is "Quick Snapshot".
+Skip `macro_release_context` if focus is not "Calendar" and depth is "Quick read".
 
 POST news panel, then compose and POST verdict panel.
 
@@ -167,7 +172,7 @@ Write to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
     "stage": "gathering",
     "agent": "<your-agent>",
     "model": "<your-model>",
-    "skill": "strategist",
+    "skill": "macro",
     "query": "<user-query>",
     "tools": { "called": 2, "total": 12, "current": "macro_release_calendar", "completed": ["macro_regime_context"] }
   },
@@ -206,9 +211,9 @@ Single chart POST as each series arrives:
     "stage": "gathering",
     "agent": "<your-agent>",
     "model": "<your-model>",
-    "skill": "strategist",
+    "skill": "macro",
     "query": "<user-query>",
-    "tools": { "called": 4, "total": 12, "current": "macro_series_history", "completed": ["macro_regime_context", "macro_release_calendar", "macro_series_history:CPIAUCSL"] }
+    "tools": { "called": 4, "total": 12, "current": "macro_series_history", "completed": ["macro_regime_context", "macro_release_calendar", "macro_series_history:headline_cpi"] }
   },
   "blocks": [
     { "divider": "INFLATION" },
@@ -227,9 +232,9 @@ Once both CPI and PCE are available, post a paired row (still `patch: true`, onl
     "stage": "gathering",
     "agent": "<your-agent>",
     "model": "<your-model>",
-    "skill": "strategist",
+    "skill": "macro",
     "query": "<user-query>",
-    "tools": { "called": 5, "total": 12, "current": "macro_series_history", "completed": ["macro_regime_context", "macro_release_calendar", "macro_series_history:CPIAUCSL", "macro_series_history:PCEPI"] }
+    "tools": { "called": 5, "total": 12, "current": "macro_series_history", "completed": ["macro_regime_context", "macro_release_calendar", "macro_series_history:headline_cpi", "macro_series_history:headline_pce"] }
   },
   "blocks": [
     { "divider": "INFLATION" },
@@ -254,9 +259,9 @@ value for each active pillar's headline indicator:
     "stage": "gathering",
     "agent": "<your-agent>",
     "model": "<your-model>",
-    "skill": "strategist",
+    "skill": "macro",
     "query": "<user-query>",
-    "tools": { "called": 9, "total": 12, "current": "macro_series_history", "completed": ["macro_regime_context", "macro_release_calendar", "macro_series_history:CPIAUCSL", "macro_series_history:PCEPI", "macro_series_history:UNRATE", "macro_series_history:FEDFUNDS", "macro_series_history:DGS10"] }
+    "tools": { "called": 9, "total": 12, "current": "macro_series_history", "completed": ["macro_regime_context", "macro_release_calendar", "macro_series_history:headline_cpi", "macro_series_history:headline_pce", "macro_series_history:unemployment_rate", "macro_series_history:fed_funds", "macro_series_history:ust_10y"] }
   },
   "blocks": [
     { "divider": "KEY INDICATORS" },
@@ -276,7 +281,7 @@ value for each active pillar's headline indicator:
 }
 ```
 
-### Phase 3 → POST market overview (new blocks only, `patch: true`)
+### Phase 3 → POST market overview + commodity futures (new blocks only, `patch: true`)
 
 Write to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
 
@@ -288,9 +293,9 @@ Write to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
     "stage": "analyzing",
     "agent": "<your-agent>",
     "model": "<your-model>",
-    "skill": "strategist",
+    "skill": "macro",
     "query": "<user-query>",
-    "tools": { "called": 11, "total": 12, "current": "technical_snapshot", "completed": ["macro_regime_context", "macro_release_calendar", "macro_series_history:*", "market_overview", "quote_snapshot"] }
+    "tools": { "called": 12, "total": 14, "current": "technical_snapshot", "completed": ["macro_regime_context", "macro_release_calendar", "macro_series_history:*", "market_overview", "quote_snapshot", "futures_snapshot"] }
   },
   "blocks": [
     { "divider": "RATE-SENSITIVE ETFS" },
@@ -299,10 +304,23 @@ Write to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
         { "panel": "chart", "data": { "values": ["...TLT history..."], "label": "TLT 6M" }, "w": 0.5 },
         { "panel": "chart", "data": { "values": ["...HYG history..."], "label": "HYG 6M" }, "w": 0.5 }
       ]
+    },
+    { "divider": "COMMODITY FUTURES" },
+    {
+      "row": [
+        { "panel": "quote", "data": { "symbol": "CL=F", "name": "Crude Oil", "price": 81.24, "changePct": 1.3, "volume": 342000, "variant": "compact" } },
+        { "panel": "quote", "data": { "symbol": "GC=F", "name": "Gold", "price": 2185.40, "changePct": 0.4, "volume": 189000, "variant": "compact" } },
+        { "panel": "quote", "data": { "symbol": "HG=F", "name": "Copper", "price": 4.12, "changePct": -0.6, "volume": 78000, "variant": "compact" } },
+        { "panel": "quote", "data": { "symbol": "ZN=F", "name": "10Y Note", "price": 110.25, "changePct": -0.2, "volume": 1240000, "variant": "compact" } }
+      ]
     }
   ]
 }
 ```
+
+The commodity futures row provides real-time pricing that complements the FRED
+macro data. Crude, gold, copper, and 10Y note futures are the four most
+macro-informative contracts - include them in every Standard+ macro analysis.
 
 ### Phase 4 → POST news + verdict (new blocks only, `patch: true`)
 
@@ -316,7 +334,7 @@ Write to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
     "stage": "complete",
     "agent": "<your-agent>",
     "model": "<your-model>",
-    "skill": "strategist",
+    "skill": "macro",
     "query": "<user-query>",
     "tools": { "called": 12, "total": 12, "current": "exa_web_search", "completed": ["macro_regime_context", "macro_release_calendar", "macro_series_history:*", "market_overview", "quote_snapshot", "technical_snapshot", "macro_release_context"] },
     "follow_ups": [
@@ -367,12 +385,6 @@ Write the verdict panel sections yourself. The sections must:
 
 Conviction enum: `strong_bull | bull | neutral | bear | strong_bear`
 
-Mapping from old signal language:
-- `RISK-ON` → `bull` (expansion confirmed, inflation contained, Fed pivoting)
-- `RISK-OFF` → `bear` (contraction signals, credit stress, Fed overtightening)
-- `CAUTIOUS` → `neutral` or `bear` depending on severity of transition
-- `NEUTRAL` → `neutral` (stable mid-cycle, no dominant directional force)
-
 ---
 
 ## Follow-up Drills
@@ -387,22 +399,23 @@ Common directions (not a script):
 - Labor and growth are sending mixed signals → pull GDP components, payroll internals, leading indicators
 - The release calendar matters right now → full 30-day calendar with expected vs. prior for top 5 releases
 - Vintage data is useful when a recent revision changes the picture → historical revisions via ALFRED
-- A sector or name is clearly in the crossfire → route to `heurist-finance/sector-head` or `heurist-finance/analyst` skill with macro context pre-loaded
+- A sector or name is clearly in the crossfire → route to `heurist-finance/sector` or `heurist-finance/analyst` skill with macro context pre-loaded
+- Commodity futures are telling a different story than FRED data → route to `heurist-finance/futures` for a full commodity deep dive
 
 Each drill: fetch additional data → POST updated panels → offer next follow-up.
 
 ### Drill execution
 
-**Inflation drill**: fetch `macro_series_history` for `CPIAUCSL` (components if
-available), `PCEPI`, `PPIFIS` + `exa_web_search` "inflation stickiness shelter
+**Inflation drill**: fetch `macro_series_history` for `headline_cpi`, `core_cpi`,
+`headline_pce`, `core_pce` + `exa_web_search` "inflation stickiness shelter
 services [current month]". POST updated chart + gauges panels.
 
-**Growth & Labor drill**: fetch `macro_series_history` for `GDP`, `INDPRO`,
-`UNRATE`, `PAYEMS` + `macro_release_context` for next NFP or GDP release. POST
+**Growth and labor drill**: fetch `macro_series_history` for `real_gdp`,
+`unemployment_rate`, `nonfarm_payrolls`, `initial_claims` + `macro_release_context` for next NFP or GDP release. POST
 chart panels for each series.
 
-**Rates drill**: fetch `macro_series_history` for `FEDFUNDS`, `DGS10` + compute
-or fetch 2Y (`DGS2`) for curve shape. POST chart panels + updated gauges.
+**Rates drill**: fetch `macro_series_history` for `fed_funds`, `ust_10y`,
+`ust_2y`, `curve_10y_minus_2y`. POST chart panels + updated gauges.
 
 **Calendar drill**: use `macro_release_calendar` result from Phase 1. For each
 of the top 5 releases, call `macro_release_context`. POST news panel with
@@ -412,7 +425,7 @@ release previews.
 POST chart panel showing revision history.
 
 **Sector/ticker impact**: pass macro context (regime state, dominant pillar,
-conviction) to `heurist-finance/sector-head` or `heurist-finance/analyst` skill as context. Load the appropriate sub-skill.
+conviction) to `heurist-finance/sector` or `heurist-finance/analyst` skill as context. Load the appropriate sub-skill.
 
 ---
 
@@ -422,7 +435,7 @@ Research mode is the default. Most users never run the TUI - they get the
 full macro analysis right here in conversation. Same depth, same personality.
 
 ```
-▐██ **HEURIST FINANCE** · strategist · macro outlook
+▐██ **HEURIST FINANCE** · macro · macro outlook
 
 ## Macro Regime - Transition: Inflation Winning the Last Mile
 
@@ -438,6 +451,7 @@ full macro analysis right here in conversation. Same depth, same personality.
 **Labor** · NFP +177K · Claims 215K · UNRATE 4.1% (rising slowly)
 **Fed** · Funds 5.25–5.50% · Dot plot: 1 cut in 2026 · Next FOMC: Apr 30
 **Rates** · 2Y 4.82% · 10Y 4.45% · 2s10s -37bps (inverted, steepening slowly)
+**Futures** · CL=F $81.24 (+1.3%) · GC=F $2,185 (+0.4%) · HG=F $4.12 (-0.6%) · ZN=F 110.25
 
 ---
 
@@ -496,7 +510,7 @@ Session file: `~/.heurist/sessions/{YYYY-MM-DD}-{NNN}.json`
   "id": "{date}-{NNN}",
   "timestamp": "{ISO}",
   "tickers": ["macro"],
-  "sub_skill": "strategist",
+  "sub_skill": "macro",
   "thesis": "{first 200 chars of thesis}",
   "conviction": "{conviction value}",
   "model": "{model used}"

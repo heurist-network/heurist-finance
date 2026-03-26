@@ -151,11 +151,11 @@ Store: `yahoo_symbol`, `cik`. Phase 1 result → POST quote panel skeleton immed
 ### Phase 2 - Market Data (always, parallel)
 
 ```
-mcp__heurist-finance__yahoofinanceagent_quote_snapshot       { symbol: yahoo_symbol }
-mcp__heurist-finance__yahoofinanceagent_technical_snapshot   { symbol: yahoo_symbol }
-mcp__heurist-finance__yahoofinanceagent_price_history        { symbol: yahoo_symbol, period: "6mo", interval: "1wk" }
-mcp__heurist-finance__yahoofinanceagent_analyst_snapshot     { symbol: yahoo_symbol }
-mcp__heurist-finance__yahoofinanceagent_company_fundamentals { symbol: yahoo_symbol }
+mcp__heurist-finance__yahoofinanceagent_quote_snapshot       { symbols: [yahoo_symbol] }
+mcp__heurist-finance__yahoofinanceagent_technical_snapshot   { symbols: [yahoo_symbol] }
+mcp__heurist-finance__yahoofinanceagent_price_history        { symbols: [yahoo_symbol], period: "6mo", interval: "1wk" }
+mcp__heurist-finance__yahoofinanceagent_analyst_snapshot     { symbols: [yahoo_symbol] }
+mcp__heurist-finance__yahoofinanceagent_company_fundamentals { symbols: [yahoo_symbol] }
 ```
 
 Phase 2 result → POST quote, chart, technical, analyst panels.
@@ -163,11 +163,11 @@ Phase 2 result → POST quote, chart, technical, analyst panels.
 ### Phase 3 - SEC & Ownership (Standard + Deep, parallel)
 
 ```
-mcp__heurist-finance__secedgaragent_filing_timeline       { cik: cik, limit: 10 }
-mcp__heurist-finance__secedgaragent_xbrl_fact_trends      { cik: cik, concept: "Revenues", periods: 8 }
-mcp__heurist-finance__secedgaragent_xbrl_fact_trends      { cik: cik, concept: "EarningsPerShareBasic", periods: 8 }
-mcp__heurist-finance__secedgaragent_insider_activity      { cik: cik, limit: 20 }
-mcp__heurist-finance__secedgaragent_institutional_holders { cik: cik, top_n: 10 }
+mcp__heurist-finance__secedgaragent_filing_timeline       { query: cik, limit: 10 }
+mcp__heurist-finance__secedgaragent_xbrl_fact_trends      { query: cik, metric: "revenue", limit: 8 }
+mcp__heurist-finance__secedgaragent_xbrl_fact_trends      { query: cik, metric: "eps", limit: 8 }
+mcp__heurist-finance__secedgaragent_insider_activity      { query: cik, limit: 20 }
+mcp__heurist-finance__secedgaragent_institutional_holders { query: cik, limit: 10 }
 ```
 
 Phase 3 result → POST updated panels (insider net buy/sell enriches verdict; filing
@@ -186,7 +186,7 @@ Phase 4 result → POST news panel, macro panel, and initial verdict.
 ### Phase 5 - Filing Diff (Deep only, or if last filing < 45 days ago)
 
 ```
-mcp__heurist-finance__secedgaragent_filing_diff { cik: cik, form_type: "10-K" }
+mcp__heurist-finance__secedgaragent_filing_diff { query: cik, form: "10-K" }
 ```
 
 If the most recent 10-K or 10-Q was filed in the last 45 days, run this
@@ -195,10 +195,43 @@ automatically in Standard mode too - material changes are high-signal.
 ### Additional Phase 5 (Deep only, parallel with filing diff)
 
 ```
-mcp__heurist-finance__secedgaragent_xbrl_fact_trends { cik: cik, concept: "Assets", periods: 8 }
-mcp__heurist-finance__secedgaragent_xbrl_fact_trends { cik: cik, concept: "Liabilities", periods: 8 }
-mcp__heurist-finance__secedgaragent_activist_watch   { cik: cik }
+mcp__heurist-finance__secedgaragent_xbrl_fact_trends { query: cik, metric: "assets", limit: 8 }
+mcp__heurist-finance__secedgaragent_xbrl_fact_trends { query: cik, metric: "liabilities", limit: 8 }
+mcp__heurist-finance__secedgaragent_activist_watch   { query: cik }
 ```
+
+### Phase 6 - Options Overlay (Deep only, parallel)
+
+Fetch the nearest options chain to gauge market positioning and implied move.
+This adds a sentiment layer that fundamental and technical data alone cannot
+provide - put/call OI ratio reveals how the derivatives market is positioned.
+
+```
+mcp__heurist-finance__yahoofinanceagent_options_expirations  { symbol: yahoo_symbol }
+```
+
+From the expirations response, select the nearest monthly expiration, then:
+
+```
+mcp__heurist-finance__yahoofinanceagent_options_chain  {
+  symbol: yahoo_symbol,
+  expiration: "<nearest-monthly-YYYY-MM-DD>",
+  side: "both",
+  moneyness: "all",
+  limit_contracts: 10
+}
+```
+
+Extract and include in the verdict:
+- **P/C OI ratio** - below 0.7 = bullish positioning, above 1.0 = bearish/hedged
+- **Max pain** - strike where most options expire worthless (gravitational magnet)
+- **ATM straddle** - expected move through expiration (implied vol proxy)
+- **Call wall / put floor** - highest OI strikes act as resistance/support
+
+POST Phase 6: options summary panel patched onto the existing canvas.
+
+**Note:** If `options_expirations` returns no data (stock not optionable or
+data unavailable), skip silently - do not block the analysis.
 
 ### Mode Summary
 
@@ -210,6 +243,7 @@ mcp__heurist-finance__secedgaragent_activist_watch   { cik: cik }
 | 4 - Web & macro | No | Yes | Yes |
 | 5 - Filing diff | No | If recent | Yes |
 | 5 - Balance sheet + activist | No | No | Yes |
+| 6 - Options overlay | No | No | Yes |
 
 ---
 
@@ -415,7 +449,8 @@ Write to `/tmp/hf-render.json`:
       { "key": "2", "label": "Show insider timeline" },
       { "key": "3", "label": "Show filing history" },
       { "key": "4", "label": "Compare with peers" },
-      { "key": "5", "label": "Show earnings surprise" }
+      { "key": "5", "label": "Show earnings surprise" },
+      { "key": "6", "label": "Show options positioning" }
     ]
   }
 }
@@ -423,6 +458,53 @@ Write to `/tmp/hf-render.json`:
 Then POST: `hf-post /tmp/hf-render.json`
 
 **STOP - POST this phase before fetching the next. The user should see panels appear incrementally.**
+
+### After Phase 6 (Deep only - options overlay)
+
+Only sent in Deep mode. Write to `/tmp/hf-render.json`:
+```json
+{
+  "blocks": [
+    { "divider": "OPTIONS POSITIONING" },
+    {
+      "panel": "table",
+      "data": {
+        "title": "AAPL Apr 18 Options · Spot $213.49 · DTE 27",
+        "columns": ["Strike", "C OI", "C Vol", "P OI", "P Vol"],
+        "rows": [
+          ["210.00", "35,200", "5,120", "31,800", "2,890"],
+          ["215.00", "41,300", "6,340", "19,200", "1,670"],
+          ["220.00", "38,700", "4,210", "12,400", "980"]
+        ],
+        "summary": "P/C OI 0.72 · Max pain $212 · ATM straddle ±6.4% · Call wall $215 · Put floor $210"
+      }
+    },
+    {
+      "panel": "gauges",
+      "data": {
+        "items": [
+          { "value": 0.72, "label": "P/C OI Ratio", "preset": "neutral" },
+          { "value": 6.4, "label": "Expected Move %", "preset": "percent" }
+        ]
+      }
+    }
+  ],
+  "patch": true,
+  "_state": {
+    "stage": "complete",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
+    "skill": "analyst",
+    "query": "AAPL",
+    "tools": { "called": 17, "total": 17, "current": null, "completed": ["resolve_symbol", "resolve_company", "quote_snapshot", "technical_snapshot", "price_history", "analyst_snapshot", "company_fundamentals", "filing_timeline", "xbrl_fact_trends", "insider_activity", "institutional_holders", "exa_web_search", "macro_regime_context", "news_search", "options_expirations", "options_chain"] }
+  }
+}
+```
+Then POST: `hf-post /tmp/hf-render.json`
+
+Include the options positioning data in the verdict thesis: "P/C OI ratio at 0.72
+with call wall at $215 - derivatives market is positioned for a grind higher but
+not a breakout." This enriches the conviction by adding a sentiment layer.
 
 ---
 
@@ -560,9 +642,6 @@ P/E from 38x toward 30x."
   two of: technicals, fundamentals, insider activity, macro.
 - `neutral` is valid but must explain what the offsetting forces are.
 
-Legacy `signal` field is accepted for backwards compatibility - the TUI coerces
-BUY→bull, SELL→bear, HOLD→neutral, CAUTIOUS→bear internally.
-
 ---
 
 ## Follow-Up Drills
@@ -642,7 +721,7 @@ Write to `/tmp/hf-render.json`:
 ```
 Then POST: `hf-post /tmp/hf-render.json`
 
-**Compare with peers**: Exit this sub-skill. Route to `heurist-finance/pm` skill with the current
+**Compare with peers**: Exit this sub-skill. Route to `heurist-finance/compare` skill with the current
 `yahoo_symbol` pre-loaded as the first ticker. Ask the user for 1-4 peer tickers.
 
 **Show earnings surprise**: Fetch `company_fundamentals` if not already fetched,
@@ -672,6 +751,41 @@ then write to `/tmp/hf-render.json`:
 }
 ```
 Then POST: `hf-post /tmp/hf-render.json`
+
+**Show options positioning**: Fetch `options_expirations` then `options_chain`
+for the nearest monthly. Write to `/tmp/hf-render.json`:
+```json
+{
+  "blocks": [
+    { "divider": "OPTIONS POSITIONING" },
+    {
+      "panel": "table",
+      "data": {
+        "title": "AAPL Apr 18 Options · Spot $213.49 · DTE 27",
+        "columns": ["Strike", "C OI", "C Vol", "P OI", "P Vol"],
+        "rows": [
+          ["210.00", "35,200", "5,120", "31,800", "2,890"],
+          ["215.00", "41,300", "6,340", "19,200", "1,670"]
+        ],
+        "summary": "P/C OI 0.72 · Max pain $212 · Call wall $215 · Put floor $210"
+      }
+    }
+  ],
+  "patch": true,
+  "_state": {
+    "stage": "complete",
+    "agent": "<your-agent>",
+    "model": "<your-model>",
+    "skill": "analyst",
+    "query": "AAPL",
+    "tools": { "called": 2, "total": 2, "current": null, "completed": ["options_expirations", "options_chain"] }
+  }
+}
+```
+Then POST: `hf-post /tmp/hf-render.json`
+
+For a full options deep dive, route to `heurist-finance/options` with the ticker
+pre-loaded.
 
 After each drill, offer the remaining drill options again. Stop only when the
 user selects **Done** or asks a new query.

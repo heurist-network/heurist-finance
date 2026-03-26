@@ -67,12 +67,17 @@ Run all in parallel after resolving the symbol:
 
 Total: 3 calls (resolve first, then 2 parallel).
 
-### Market Mode (1–2 calls)
+### Market Mode (2–4 calls)
 
 1. `mcp__heurist-finance__yahoofinanceagent_market_overview` - US indices, breadth, sectors
-2. `mcp__heurist-finance__fredmacroagent_macro_regime_context` - (optional, add if < 5s budget remains)
+2. `mcp__heurist-finance__yahoofinanceagent_futures_snapshot` - CL=F, GC=F, ZN=F (commodity pulse: crude, gold, 10Y note) with `include_history: false`
+3. `mcp__heurist-finance__fredmacroagent_macro_regime_context` - (optional, add if < 5s budget remains)
 
-Total: 1–2 calls.
+The futures snapshot adds real-time commodity context to the market pulse -
+crude for growth sentiment, gold for risk appetite, 10Y note for rate direction.
+Three symbols with `include_history: false` keeps the call fast.
+
+Total: 2–4 calls.
 
 ---
 
@@ -145,6 +150,14 @@ Write to `/tmp/hf-render.json`:
           { "pillar": "Growth", "state": "SLOW", "direction": "down" }
         ]
       }
+    },
+    { "divider": "COMMODITY FUTURES" },
+    {
+      "row": [
+        { "panel": "quote", "data": { "symbol": "CL=F", "name": "Crude", "price": 81.24, "changePct": 1.3, "variant": "compact" } },
+        { "panel": "quote", "data": { "symbol": "GC=F", "name": "Gold", "price": 2185.40, "changePct": 0.4, "variant": "compact" } },
+        { "panel": "quote", "data": { "symbol": "ZN=F", "name": "10Y Note", "price": 110.25, "changePct": -0.2, "variant": "compact" } }
+      ]
     }
   ],
   "_state": {
@@ -153,10 +166,11 @@ Write to `/tmp/hf-render.json`:
     "model": "<your-model>",
     "skill": "desk",
     "query": "market pulse",
-    "tools": { "called": 2, "total": 2, "current": null, "completed": ["market_overview", "macro_regime_context"] },
+    "tools": { "called": 3, "total": 3, "current": null, "completed": ["market_overview", "futures_snapshot", "macro_regime_context"] },
     "follow_ups": [
       { "key": "1", "label": "Macro deep dive" },
-      { "key": "2", "label": "Sector rotation view" }
+      { "key": "2", "label": "Sector rotation view" },
+      { "key": "3", "label": "Commodity futures detail" }
     ]
   }
 }
@@ -204,7 +218,8 @@ if it's a quiet tape, say so).
 
 Common directions if the user wants more:
 - Specific name is interesting → route to `heurist-finance/analyst` skill
-- Macro context needed → route to `heurist-finance/strategist` skill
+- Macro context needed → route to `heurist-finance/macro` skill
+- Commodity or futures detail → route to `heurist-finance/futures` skill
 
 Do not volunteer additional analysis. Do not fetch more data unless the user
 asks for it.
@@ -248,9 +263,10 @@ personality - just no canvas.
 **S&P 500** · $512.34 (-1.2%) · Vol 1.8x avg
 **VIX** · 19.4 (+22%) · Elevated but sub-20
 **Macro** · Inflation STICKY · Rates TIGHT · Growth SLOWING
+**Futures** · CL=F $81.24 (+1.3%) · GC=F $2,185 (+0.4%) · ZN=F 110.25 (-0.2%)
 
 ---
-*Claude Opus 4 · 2 tools · ~$0.02*
+*Claude Opus 4 · 3 tools · ~$0.03*
 ```
 
 Rules:
@@ -310,7 +326,7 @@ zero-padded to 3 digits. Delete sessions older than 90 days:
 
 ## Constraints
 
-- Max 5 MCP calls total. If a call errors, skip it and render with what you have.
+- Max 6 MCP calls total. If a call errors, skip it and render with what you have.
 - No analyst data, no news, no insiders, no earnings - those belong in `heurist-finance/analyst` skill.
 - `variant: "compact"` on the quote panel is mandatory - keeps the layout single-row.
 - `signals` array holds exactly one entry: the dominant signal as a short string.

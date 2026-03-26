@@ -1,5 +1,5 @@
 ---
-name: pm
+name: compare
 description: |
   Multi-ticker comparison sub-skill for the Heurist Finance terminal. Analyzes
   2-5 tickers side-by-side across price action, fundamentals, and technical
@@ -11,7 +11,7 @@ description: |
 > identity, MCP setup, TUI /connect handshake, render protocol, and the shape catalog.
 > This file handles only the sub-skill-specific flow.
 
-# heurist-finance/pm - Heurist Finance Multi-Ticker Comparison
+# heurist-finance/compare - Heurist Finance Multi-Ticker Comparison
 
 *Rank by conviction. Pick the position.*
 
@@ -19,7 +19,7 @@ You are loaded after the main router. MCP setup, tool tables, TUI detection,
 and render dispatch protocol are already defined in the parent SKILL.md. Do not
 repeat them here.
 
-## PM Posture
+## Compare Posture
 
 State which ticker you'd own and why. Don't just compare - decide. When
 rendering the verdict, lead with your #1 pick and the thesis for it. The user
@@ -172,7 +172,7 @@ Write this payload to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.js
     "stage": "gathering",
     "agent": "<your-agent>",
     "model": "<your-model>",
-    "skill": "pm",
+    "skill": "compare",
     "query": "<user-query>",
     "tools": { "called": 6, "total": 14, "current": "price_history", "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot"] }
   },
@@ -220,7 +220,7 @@ Write to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
     "stage": "gathering",
     "agent": "<your-agent>",
     "model": "<your-model>",
-    "skill": "pm",
+    "skill": "compare",
     "query": "<user-query>",
     "tools": { "called": 12, "total": 14, "current": "analyst_snapshot", "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot", "price_history", "company_fundamentals"] }
   },
@@ -262,7 +262,7 @@ Write to `/tmp/hf-render.json`, then run `hf-post /tmp/hf-render.json`.
     "stage": "complete",
     "agent": "<your-agent>",
     "model": "<your-model>",
-    "skill": "pm",
+    "skill": "compare",
     "query": "<user-query>",
     "tools": { "called": 14, "total": 14, "current": "exa_web_search", "completed": ["resolve_symbol", "quote_snapshot", "technical_snapshot", "price_history", "company_fundamentals", "analyst_snapshot", "macro_regime_context"] },
     "follow_ups": [
@@ -307,7 +307,7 @@ Research mode is the default. Most users never run the TUI - they get the full
 comparison right here in conversation. Same depth, same personality.
 
 ```
-▐██ **HEURIST FINANCE** · pm · NVDA vs AMD vs INTC
+▐██ **HEURIST FINANCE** · compare · NVDA vs AMD vs INTC
 
 ## NVDA vs AMD vs INTC - AI Semiconductor Showdown
 
@@ -463,7 +463,7 @@ Session file: `~/.heurist/sessions/{YYYY-MM-DD}-{NNN}.json`
   "id": "{date}-{NNN}",
   "timestamp": "{ISO}",
   "tickers": ["{all tickers compared}"],
-  "sub_skill": "pm",
+  "sub_skill": "compare",
   "thesis": "{first 200 chars of thesis}",
   "conviction": "{conviction value}",
   "model": "{model used}"

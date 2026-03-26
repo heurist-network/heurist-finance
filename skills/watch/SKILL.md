@@ -142,7 +142,7 @@ For each resolved symbol, call `quote_snapshot` in parallel. This phase is
 the **minimum required** - POST a first render after this phase completes.
 
 ```
-mcp__heurist-finance__yahoofinanceagent_quote_snapshot(symbol: "<resolved_symbol>")
+mcp__heurist-finance__yahoofinanceagent_quote_snapshot(symbols: ["<resolved_symbol>"])
 ```
 
 Map result to quote row:
@@ -174,8 +174,8 @@ Skip this phase for Quick Status and Movers Only.
 
 For each ticker, call both in parallel:
 ```
-mcp__heurist-finance__yahoofinanceagent_technical_snapshot(symbol: "<resolved_symbol>")
-mcp__heurist-finance__yahoofinanceagent_analyst_snapshot(symbol: "<resolved_symbol>")
+mcp__heurist-finance__yahoofinanceagent_technical_snapshot(symbols: ["<resolved_symbol>"])
+mcp__heurist-finance__yahoofinanceagent_analyst_snapshot(symbols: ["<resolved_symbol>"])
 ```
 
 Map technical result:
@@ -459,7 +459,7 @@ These are data-driven follow-ups, not a fixed menu.
 Common directions:
 
 - A mover stands out → offer a full tearsheet → route to `heurist-finance/analyst` skill
-- The top movers warrant a head-to-head → route to `heurist-finance/pm` skill with the top N (≤ 5) by `|changePct|`
+- The top movers warrant a head-to-head → route to `heurist-finance/compare` skill with the top N (≤ 5) by `|changePct|`
 - Watchlist management needed → add or remove tickers
 - A refresh is useful → re-run Phases 2–4, POST updated render
 
@@ -487,7 +487,7 @@ ticker pre-supplied (skip the ticker-ask step).
 ### Compare top movers routing
 
 Collect the top N tickers (N = min(5, tickers with `|changePct| >= 1.0%`)).
-Pass as the comparison set to `heurist-finance/pm` skill. Read `skills/pm/SKILL.md` and
+Pass as the comparison set to `heurist-finance/compare` skill. Read `skills/compare/SKILL.md` and
 follow its instructions with the ticker list pre-supplied.
 
 ---
@@ -600,7 +600,7 @@ Session file: `~/.heurist/sessions/{YYYY-MM-DD}-{NNN}.json`
   "tickers": ["{all tickers in watchlist analyzed}"],
   "sub_skill": "watch",
   "thesis": "{first 200 chars of summary blockquote}",
-  "conviction": "{overall signal: bullish|bearish|neutral - derived from the majority signal across all analyzed tickers}",
+  "conviction": "{overall conviction: bull|bear|neutral - derived from the majority view across all analyzed tickers}",
   "model": "{model used}"
 }
 ```

@@ -149,13 +149,13 @@ note others in the verdict body.
 Run simultaneously:
 
 - `macro_regime_context` - Multi-pillar regime summary (inflation, rates, growth,
-  credit, labor, dollar)
-- `macro_series_snapshot` - Relevant series for this event type:
-  - FOMC / rates events → `FEDFUNDS`, `DGS10`, `T10YIE`
-  - Inflation events → `CPIAUCSL`, `PCEPI`, `MICH`
-  - Growth / employment events → `GDPC1`, `UNRATE`, `PAYEMS`
-  - Geopolitical / risk-off events → `VIXCLS`, `DTWEXBGS` (DXY proxy)
-  - Earnings / sector events → sector-relevant series
+  credit_conditions, labor)
+- `macro_series_snapshot` - Relevant series by event type (use registry keys):
+  - FOMC / rates events → `fed_funds`, `ust_10y`, `ust_2y`, `curve_10y_minus_2y`
+  - Inflation events → `headline_cpi`, `core_pce`, `headline_pce`
+  - Growth / employment events → `real_gdp`, `unemployment_rate`, `nonfarm_payrolls`
+  - Credit / risk-off events → `nfci`, `baa_treasury_spread`
+  - Earnings / sector events → sector-relevant registry keys + `exa_web_search` for market data not in FRED
 
 POST Phase 3 partial render: populate `macro` panel.
 
@@ -443,10 +443,7 @@ The verdict panel is your analyst call. Apply these rules:
    5 sessions as positioning normalizes; fades by end of quarter as earnings
    season resets the narrative.")
 
-Verdict signal values: `bull` / `bear` / `neutral`
-
-Signal mapping: BULLISH → `bull`, BEARISH → `bear`, NEUTRAL → `neutral`,
-FADING → `bear`, MOMENTUM → `bull`
+Conviction values: `strong_bull` / `bull` / `neutral` / `bear` / `strong_bear`
 
 Use the sections API for all verdict renders:
 ```json
@@ -472,8 +469,8 @@ Common directions:
 
 - The primary affected name deserves a full tearsheet → route to `heurist-finance/analyst` skill
 - Historical analogs would sharpen the trade call → fetch past events via exa, summarize outcomes (direction, magnitude, regime at the time)
-- The event ripples into a sector → route to `heurist-finance/sector-head` skill with event context pre-loaded
-- Multiple affected names warrant a head-to-head → route to `heurist-finance/pm` skill
+- The event ripples into a sector → route to `heurist-finance/sector` skill with event context pre-loaded
+- Multiple affected names warrant a head-to-head → route to `heurist-finance/compare` skill
 
 ---
 
