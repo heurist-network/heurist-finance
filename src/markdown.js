@@ -16,7 +16,25 @@
  * Pure functions, theme-aware via palette().
  */
 import { c, pc, BOLD, DIM, RESET } from './ansi.js';
+import { tablePercentColor } from './formatters.js';
 import { palette } from './themes.js';
+
+function renderMarkdownTableLine(line) {
+  const cells = line.split('|');
+  if (cells.length < 3) return renderMarkdownInline(line);
+
+  return cells.map((cell, index) => {
+    if (index === 0 || index === cells.length - 1) return cell;
+
+    const leading = cell.match(/^\s*/)?.[0] ?? '';
+    const trailing = cell.match(/\s*$/)?.[0] ?? '';
+    const inner = cell.slice(leading.length, cell.length - trailing.length);
+    const rendered = renderMarkdownInline(inner);
+    const hex = tablePercentColor(inner);
+
+    return `${leading}${hex ? c(hex, rendered) : rendered}${trailing}`;
+  }).join('|');
+}
 
 // ── Inline markdown ─────────────────────────────────────────────────────────
 
@@ -87,6 +105,12 @@ export function renderMarkdownBlock(text) {
     // --- or ___ → horizontal rule (dim line)
     if (/^[-_*]{3,}\s*$/.test(line)) {
       result.push(pc('muted', '─'.repeat(40)));
+      continue;
+    }
+
+    // Markdown pipe table row → preserve pipes/cell spacing, color only signed % cells
+    if (/^\|(?:[^|\n]*\|){2,}\s*$/.test(line)) {
+      result.push(renderMarkdownTableLine(line));
       continue;
     }
 

@@ -2,7 +2,10 @@
  * Financial number formatters. Pure functions, zero deps.
  * Follows the plan's number formatting spec.
  */
-import { pc } from './ansi.js';
+import { c, pc } from './ansi.js';
+import { MARKET_GREEN, MARKET_RED } from './themes.js';
+
+const SIGNED_PERCENT_CHANGE_RE = /^\s*([+-])(?=\d|\.\d)(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?%\s*(?:[▲▼])?\s*$/;
 
 // ── Price ────────────────────────────────────────────────────────
 
@@ -141,4 +144,16 @@ export function trendArrow(direction) {
   if (['rising', 'up', 'bullish', 'above'].includes(d)) return pc('positive', '▲');
   if (['falling', 'down', 'bearish', 'below'].includes(d)) return pc('negative', '▼');
   return pc('muted', '■');
+}
+
+export function tablePercentColor(text) {
+  const match = String(text ?? '').match(SIGNED_PERCENT_CHANGE_RE);
+  if (!match) return '';
+  return match[1] === '+' ? MARKET_GREEN : MARKET_RED;
+}
+
+export function colorTablePercent(text) {
+  const str = String(text ?? '');
+  const hex = tablePercentColor(str);
+  return hex ? c(hex, str) : str;
 }

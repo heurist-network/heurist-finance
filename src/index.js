@@ -1,5 +1,5 @@
 // Component library entry point
-export { setTheme, getTheme, palette, themeColors, themes } from './themes.js';
+export { setTheme, getTheme, palette, themeColors, themes, MARKET_GREEN, MARKET_RED } from './themes.js';
 export * from './ansi.js';
 export * from './formatters.js';
 export { renderMarkdownInline, renderMarkdownBlock } from './markdown.js';

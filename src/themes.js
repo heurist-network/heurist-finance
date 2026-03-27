@@ -4,6 +4,9 @@
  * Renderer converts hex → true-color ANSI (38;2;r;g;b).
  */
 
+export const MARKET_GREEN = '#72C66B';
+export const MARKET_RED = '#E7775A';
+
 const themes = {
   'terminal-cyan': {
     accent:    '#00d4ff',

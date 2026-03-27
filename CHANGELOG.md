@@ -2,6 +2,14 @@
 
 All notable changes to Heurist Finance are documented here.
 
+## [0.10.0] - 2026-03-27
+
+### Changed
+- **Terminal tables**: signed percentage cells like `+1.44%` and `-2.87%` now render with shared market green/red styling across structured table blocks and markdown pipe tables, while unsigned percentages and non-table text remain unchanged.
+
+### Engineering
+- **Release**: version bump to `0.10.0`.
+
 ## [0.9.14] - 2026-03-27
 
 ### Engineering

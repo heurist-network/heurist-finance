@@ -1045,7 +1045,7 @@ var ANALYTICS_MAX_BYTES = 5 * 1024 * 1024;
 var VALID_ACTIONS = /* @__PURE__ */ new Set(["render", "focus", "layout", "clear"]);
 var _require = createRequire(import.meta.url);
 function _resolveVersion() {
-  if (true) return "0.9.14";
+  if (true) return "0.10.0";
   try {
     return _require("../package.json").version;
   } catch {
@@ -1525,6 +1525,8 @@ function shutdown() {
 init_debugLog();
 
 // src/themes.js
+var MARKET_GREEN = "#72C66B";
+var MARKET_RED = "#E7775A";
 var themes = {
   "terminal-cyan": {
     accent: "#00d4ff",
@@ -1767,6 +1769,7 @@ function boxEmpty(width, tier = 2) {
 }
 
 // src/formatters.js
+var SIGNED_PERCENT_CHANGE_RE = /^\s*([+-])(?=\d|\.\d)(?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d+)?%\s*(?:[▲▼])?\s*$/;
 function fmtPrice(v) {
   if (v == null) return "\u2014";
   v = Number(v);
@@ -1844,6 +1847,16 @@ function trendArrow(direction) {
   if (["rising", "up", "bullish", "above"].includes(d)) return pc("positive", "\u25B2");
   if (["falling", "down", "bearish", "below"].includes(d)) return pc("negative", "\u25BC");
   return pc("muted", "\u25A0");
+}
+function tablePercentColor(text) {
+  const match = String(text ?? "").match(SIGNED_PERCENT_CHANGE_RE);
+  if (!match) return "";
+  return match[1] === "+" ? MARKET_GREEN : MARKET_RED;
+}
+function colorTablePercent(text) {
+  const str = String(text ?? "");
+  const hex = tablePercentColor(str);
+  return hex ? c(hex, str) : str;
 }
 
 // src/markdown.js
@@ -3598,7 +3611,7 @@ import os3 from "os";
 import { createRequire as createRequire2 } from "module";
 var _require2 = createRequire2(import.meta.url);
 function _resolveVersion2() {
-  if (true) return "0.9.14";
+  if (true) return "0.10.0";
   try {
     return _require2("../package.json").version;
   } catch {
@@ -4268,20 +4281,24 @@ function renderTable(spec, width) {
   }
   function formatCell(val, col, role) {
     const str = String(val ?? "");
+    const autoColored = role ? str : colorTablePercent(str);
+    const hasAutoColor = autoColored !== str;
     const w = colWidths[col];
     const a = align[col] ?? "left";
     let padded;
     if (a === "right") {
-      padded = padLeft(str, w);
+      padded = padLeft(autoColored, w);
     } else if (a === "center") {
-      const vis = visLen(str);
+      const vis = visLen(autoColored);
       const leftPad = Math.floor((w - vis) / 2);
       const rightPad = w - vis - leftPad;
-      padded = " ".repeat(Math.max(0, leftPad)) + str + " ".repeat(Math.max(0, rightPad));
+      padded = " ".repeat(Math.max(0, leftPad)) + autoColored + " ".repeat(Math.max(0, rightPad));
     } else {
-      padded = padRight(str, w);
+      padded = padRight(autoColored, w);
     }
-    return role ? pc(role, padded) : padded;
+    if (role) return pc(role, padded);
+    if (hasAutoColor) return padded;
+    return pc("data", padded);
   }
   const lines = [];
   if (headers.length > 0) {
@@ -4296,7 +4313,7 @@ function renderTable(spec, width) {
     for (let c2 = 0; c2 < visibleCols; c2++) {
       const val = row.cells?.[c2] ?? "";
       const role = row.colors?.[String(c2)] ?? null;
-      cells.push(formatCell(val, c2, role || "data"));
+      cells.push(formatCell(val, c2, role));
     }
     lines.push(cells.join(""));
   }

@@ -15,7 +15,7 @@
  * presetToBlocks(layout, panels) converts legacy { layout, panels } payloads
  * into a blocks array for backward compat.
  */
-import { boxDivider, pc, visLen, padRight, padLeft, strip, ansiTrunc } from '../src/index.js';
+import { boxDivider, pc, visLen, padRight, padLeft, strip, ansiTrunc, colorTablePercent } from '../src/index.js';
 import { renderPanel, skeleton } from './panels.js';
 import { PANEL_NAMES_SET } from './state.js';
 
@@ -103,20 +103,24 @@ function renderTable(spec, width) {
    */
   function formatCell(val, col, role) {
     const str = String(val ?? '');
+    const autoColored = role ? str : colorTablePercent(str);
+    const hasAutoColor = autoColored !== str;
     const w = colWidths[col];
     const a = align[col] ?? 'left';
     let padded;
     if (a === 'right') {
-      padded = padLeft(str, w);
+      padded = padLeft(autoColored, w);
     } else if (a === 'center') {
-      const vis = visLen(str);
+      const vis = visLen(autoColored);
       const leftPad = Math.floor((w - vis) / 2);
       const rightPad = w - vis - leftPad;
-      padded = ' '.repeat(Math.max(0, leftPad)) + str + ' '.repeat(Math.max(0, rightPad));
+      padded = ' '.repeat(Math.max(0, leftPad)) + autoColored + ' '.repeat(Math.max(0, rightPad));
     } else {
-      padded = padRight(str, w);
+      padded = padRight(autoColored, w);
     }
-    return role ? pc(role, padded) : padded;
+    if (role) return pc(role, padded);
+    if (hasAutoColor) return padded;
+    return pc('data', padded);
   }
 
   const lines = [];
@@ -136,7 +140,7 @@ function renderTable(spec, width) {
     for (let c = 0; c < visibleCols; c++) {
       const val = row.cells?.[c] ?? '';
       const role = row.colors?.[String(c)] ?? null;
-      cells.push(formatCell(val, c, role || 'data'));
+      cells.push(formatCell(val, c, role));
     }
     lines.push(cells.join(''));
   }
