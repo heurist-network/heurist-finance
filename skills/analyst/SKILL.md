@@ -520,16 +520,13 @@ Only sent in Deep mode. Write to `/tmp/hf-render.json`:
   "blocks": [
     { "divider": "OPTIONS POSITIONING" },
     {
-      "panel": "table",
-      "data": {
-        "title": "AAPL Apr 18 Options · Spot $213.49 · DTE 27",
-        "columns": ["Strike", "C OI", "C Vol", "P OI", "P Vol"],
+      "table": {
+        "headers": ["Strike", "C OI", "C Vol", "P OI", "P Vol"],
         "rows": [
-          ["210.00", "35,200", "5,120", "31,800", "2,890"],
-          ["215.00", "41,300", "6,340", "19,200", "1,670"],
-          ["220.00", "38,700", "4,210", "12,400", "980"]
-        ],
-        "summary": "P/C OI 0.72 · Max pain $212 · ATM straddle ±6.4% · Call wall $215 · Put floor $210"
+          { "cells": ["210.00", "35,200", "5,120", "31,800", "2,890"] },
+          { "cells": ["215.00", "41,300", "6,340", "19,200", "1,670"] },
+          { "cells": ["220.00", "38,700", "4,210", "12,400", "980"] }
+        ]
       }
     },
     {
@@ -812,15 +809,12 @@ for the nearest monthly. Write to `/tmp/hf-render.json`:
   "blocks": [
     { "divider": "OPTIONS POSITIONING" },
     {
-      "panel": "table",
-      "data": {
-        "title": "AAPL Apr 18 Options · Spot $213.49 · DTE 27",
-        "columns": ["Strike", "C OI", "C Vol", "P OI", "P Vol"],
+      "table": {
+        "headers": ["Strike", "C OI", "C Vol", "P OI", "P Vol"],
         "rows": [
-          ["210.00", "35,200", "5,120", "31,800", "2,890"],
-          ["215.00", "41,300", "6,340", "19,200", "1,670"]
-        ],
-        "summary": "P/C OI 0.72 · Max pain $212 · Call wall $215 · Put floor $210"
+          { "cells": ["210.00", "35,200", "5,120", "31,800", "2,890"] },
+          { "cells": ["215.00", "41,300", "6,340", "19,200", "1,670"] }
+        ]
       }
     }
   ],
