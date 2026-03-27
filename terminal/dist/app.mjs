@@ -1023,8 +1023,8 @@ var init_schemas = __esm({
 });
 
 // terminal/app.js
-import fs5 from "fs";
-import path6 from "path";
+import fs4 from "fs";
+import path5 from "path";
 import readline from "readline";
 
 // terminal/server.js
@@ -1171,13 +1171,13 @@ function handleRequest(req, res) {
     try {
       const duration_ms = Date.now() - _reqStart;
       const status = res.statusCode;
-      const { method: method2, url: path7 } = req;
-      if (path7 === "/render") {
+      const { method: method2, url: path6 } = req;
+      if (path6 === "/render") {
         const pending = req._pendingRenderLog || {};
         logAnalytics({
           ts: (/* @__PURE__ */ new Date()).toISOString(),
           method: method2,
-          path: path7,
+          path: path6,
           status,
           duration_ms,
           ...pending,
@@ -1209,7 +1209,7 @@ function handleRequest(req, res) {
         const entry = {
           ts: (/* @__PURE__ */ new Date()).toISOString(),
           method: method2,
-          path: path7,
+          path: path6,
           status,
           duration_ms
         };
@@ -4878,12 +4878,7 @@ function listReports() {
 
 // terminal/version.js
 import https from "https";
-import fs4 from "fs";
-import path5 from "path";
-import os4 from "os";
 var REGISTRY_URL = "https://registry.npmjs.org/@heurist-network/skills/latest";
-var VERSION_CACHE = path5.join(os4.homedir(), ".heurist", "version.json");
-var CACHE_TTL_MS = 36e5;
 function fetchLatestVersion() {
   return new Promise((resolve) => {
     const req = https.get(REGISTRY_URL, { timeout: 3e3 }, (res) => {
@@ -4907,39 +4902,11 @@ function fetchLatestVersion() {
     });
   });
 }
-function readCache() {
-  try {
-    const raw = fs4.readFileSync(VERSION_CACHE, "utf8");
-    const cached = JSON.parse(raw);
-    if (Date.now() - cached.checkedAt < CACHE_TTL_MS) {
-      return cached;
-    }
-  } catch {
-  }
-  return null;
-}
-function writeCache(latest) {
-  try {
-    fs4.mkdirSync(path5.dirname(VERSION_CACHE), { recursive: true });
-    fs4.writeFileSync(VERSION_CACHE, JSON.stringify({
-      latest,
-      checkedAt: Date.now()
-    }));
-  } catch {
-  }
-}
 async function checkVersion() {
-  const cached = readCache();
-  if (cached?.latest) {
-    VERSION2.latest = cached.latest;
-    VERSION2.upToDate = VERSION2.current === cached.latest || normalizeVersion(VERSION2.current) >= normalizeVersion(cached.latest);
-    return;
-  }
   const latest = await fetchLatestVersion();
   if (!latest) return;
   VERSION2.latest = latest;
   VERSION2.upToDate = VERSION2.current === latest || normalizeVersion(VERSION2.current) >= normalizeVersion(latest);
-  writeCache(latest);
 }
 function normalizeVersion(v) {
   const parts = String(v).replace(/^v/, "").split(".").map(Number);
@@ -5190,8 +5157,8 @@ function handleKeypress(ch, key) {
       process.stdout.write("\x1B[2J\x1B[H" + renderLoadOverlay(getWidth()));
     } else if (key.name === "return" && tui.loadList.length > 0) {
       try {
-        const file = path6.join(REPORTS_DIR, tui.loadList[tui.loadIdx]);
-        const saved = JSON.parse(fs5.readFileSync(file, "utf8"));
+        const file = path5.join(REPORTS_DIR, tui.loadList[tui.loadIdx]);
+        const saved = JSON.parse(fs4.readFileSync(file, "utf8"));
         tui.loadMode = false;
         if (saved.meta) tui.renderMeta = { ...tui.renderMeta, ...saved.meta };
         if (Array.isArray(saved.blocks)) {
