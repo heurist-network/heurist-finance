@@ -19,6 +19,11 @@ import { boxDivider, pc, visLen, padRight, padLeft, strip, ansiTrunc, colorTable
 import { renderPanel, skeleton } from './panels.js';
 import { PANEL_NAMES_SET } from './state.js';
 
+const TABLE_COLOR_ROLE_ALIASES = {
+  green: 'positive',
+  red: 'negative',
+};
+
 // ── Width resolution ──────────────────────────────────────────────────────────
 
 /**
@@ -139,7 +144,10 @@ function renderTable(spec, width) {
     const cells = [];
     for (let c = 0; c < visibleCols; c++) {
       const val = row.cells?.[c] ?? '';
-      const role = row.colors?.[String(c)] ?? null;
+      const rawRole = row.colors?.[String(c)] ?? null;
+      const role = typeof rawRole === 'string'
+        ? (TABLE_COLOR_ROLE_ALIASES[rawRole.trim().toLowerCase()] ?? rawRole)
+        : rawRole;
       cells.push(formatCell(val, c, role));
     }
     lines.push(cells.join(''));

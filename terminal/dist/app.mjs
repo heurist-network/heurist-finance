@@ -1045,7 +1045,7 @@ var ANALYTICS_MAX_BYTES = 5 * 1024 * 1024;
 var VALID_ACTIONS = /* @__PURE__ */ new Set(["render", "focus", "layout", "clear"]);
 var _require = createRequire(import.meta.url);
 function _resolveVersion() {
-  if (true) return "0.10.0";
+  if (true) return "0.10.1";
   try {
     return _require("../package.json").version;
   } catch {
@@ -3611,7 +3611,7 @@ import os3 from "os";
 import { createRequire as createRequire2 } from "module";
 var _require2 = createRequire2(import.meta.url);
 function _resolveVersion2() {
-  if (true) return "0.10.0";
+  if (true) return "0.10.1";
   try {
     return _require2("../package.json").version;
   } catch {
@@ -4241,6 +4241,10 @@ function renderPanel(name, data, width = 80) {
 }
 
 // terminal/engine.js
+var TABLE_COLOR_ROLE_ALIASES = {
+  green: "positive",
+  red: "negative"
+};
 function resolveWidth(w, parentWidth) {
   if (w == null) return parentWidth;
   if (w > 0 && w <= 1) return Math.max(1, Math.floor(parentWidth * w));
@@ -4312,7 +4316,8 @@ function renderTable(spec, width) {
     const cells = [];
     for (let c2 = 0; c2 < visibleCols; c2++) {
       const val = row.cells?.[c2] ?? "";
-      const role = row.colors?.[String(c2)] ?? null;
+      const rawRole = row.colors?.[String(c2)] ?? null;
+      const role = typeof rawRole === "string" ? TABLE_COLOR_ROLE_ALIASES[rawRole.trim().toLowerCase()] ?? rawRole : rawRole;
       cells.push(formatCell(val, c2, role));
     }
     lines.push(cells.join(""));

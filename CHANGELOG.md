@@ -2,6 +2,15 @@
 
 All notable changes to Heurist Finance are documented here.
 
+## [0.10.1] - 2026-03-27
+
+### Fixed
+- **Terminal tables**: row `colors` now aliases `"green"` to `positive` and `"red"` to `negative`, so documented table payloads render theme colors correctly.
+
+### Engineering
+- **Tests**: added a regression test covering `"green"`/`"red"` table color aliases.
+- **Release**: version bump to `0.10.1`.
+
 ## [0.10.0] - 2026-03-27
 
 ### Changed
