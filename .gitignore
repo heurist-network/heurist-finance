@@ -2,3 +2,5 @@ node_modules/
 
 # Telemetry data (never commit)
 telemetry-server/data/
+pnpm-lock.yaml
+.mcp.json
