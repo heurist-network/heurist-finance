@@ -2,6 +2,11 @@
 
 All notable changes to Heurist Finance are documented here.
 
+## [0.9.14] - 2026-03-27
+
+### Engineering
+- **Release**: version bump to `0.9.14`.
+
 ## [0.9.13] - 2026-03-26
 
 ### Added
