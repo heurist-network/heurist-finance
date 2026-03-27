@@ -896,7 +896,7 @@ number[] (time series)                  → chart (braille)
 {quarters: [{actual, estimate}]}        → earnings
 {transactions: [{date, type, ...}]}     → insiders
 {holders: [{name, percent, shares}]}    → holders
-{filings: [{date, form, desc}]}         → filings
+{filings: [{date, form, description}]}  → filings
 {pillars: [{label, value, direction}]}  → macro (variants: boxed/plain)
 {items: [{title, source, time}]}        → news
 {value, preset}                         → gauge
@@ -910,6 +910,14 @@ anything else                           → text (engine)
 
 Use ALL components that match the data. A deep-dive that only renders 5 panels
 when 15 data shapes are available is wasting intelligence.
+
+**Computed fields:** Some panel fields are not returned directly by MCP tools
+and must be computed by the agent:
+- `holders.percent`: `institutional_holders` returns `shares` and `value` but
+  NOT `percent`. Compute as `shares / (marketCap / price) * 100`. Passing `null`
+  renders as 0.0%.
+- `filings.description`: `filing_timeline` returns `items` (from SEC). Map to
+  `description` string for the TUI. The array key must be `filings`, not `items`.
 
 ### Composition Grammar
 

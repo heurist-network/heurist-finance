@@ -755,8 +755,8 @@ Write to `/tmp/hf-render.json`:
     {
       "panel": "filings",
       "data": {
-        "items": [
-          { "form": "10-Q", "filed": "2025-08-01", "period": "2025-06-30", "url": "..." }
+        "filings": [
+          { "form": "10-Q", "date": "2025-08-01", "description": "Q2 FY2025 quarterly (period: 2025-06-30)", "url": "..." }
         ]
       }
     }

@@ -6,9 +6,13 @@ All notable changes to Heurist Finance are documented here.
 
 ### Fixed
 - **Terminal tables**: row `colors` now aliases `"green"` to `positive` and `"red"` to `negative`, so documented table payloads render theme colors correctly.
+- **Filings panel**: SKILL.md example used `"items"` array key and `"filed"` date field -- TUI expects `"filings"` and `"date"`. Fixed in analyst sub-skill and Shape Catalog (`desc` -> `description`).
+- **Holders panel**: added "Computed fields" note -- `institutional_holders` MCP returns shares/value but not percent; agent must compute `percent = shares / (marketCap / price) * 100`. Passing `null` rendered as 0.0%.
 
 ### Engineering
 - **Tests**: added a regression test covering `"green"`/`"red"` table color aliases.
+- **DEV.md**: added releasing rules (versioning, tag rule, changelog conventions).
+- **package.json**: `version` lifecycle script auto-rebuilds `dist/app.mjs` and stages it on `npm version patch`.
 - **Release**: version bump to `0.10.1`.
 
 ## [0.10.0] - 2026-03-27
