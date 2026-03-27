@@ -1045,7 +1045,7 @@ var ANALYTICS_MAX_BYTES = 5 * 1024 * 1024;
 var VALID_ACTIONS = /* @__PURE__ */ new Set(["render", "focus", "layout", "clear"]);
 var _require = createRequire(import.meta.url);
 function _resolveVersion() {
-  if (true) return "0.10.2";
+  if (true) return "0.10.3";
   try {
     return _require("../package.json").version;
   } catch {
@@ -3611,7 +3611,7 @@ import os3 from "os";
 import { createRequire as createRequire2 } from "module";
 var _require2 = createRequire2(import.meta.url);
 function _resolveVersion2() {
-  if (true) return "0.10.2";
+  if (true) return "0.10.3";
   try {
     return _require2("../package.json").version;
   } catch {

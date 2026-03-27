@@ -1,8 +1,8 @@
 #!/bin/bash
-# bin/check-update.sh — Periodic version check with cache, snooze, and auto-upgrade.
+# bin/check-update.sh — Periodic version check with snooze and auto-upgrade.
 #
 # Compares local package.json version against latest git tag on the public repo.
-# Modeled after gstack's update-check: cache TTL, escalating snooze, auto-upgrade.
+# Uses live remote tag checks on every run, with escalating snooze and auto-upgrade.
 #
 # Outputs JSON (one line):
 #   {"just_upgraded":true,"from":"0.9.1","to":"0.9.11"}
@@ -15,7 +15,7 @@
 #   1 — check failed (network, no remote, etc.)
 #
 # Flags:
-#   --force    bust cache, re-fetch from remote
+#   --force    compatibility no-op; always fetches from remote
 #   --snooze   write snooze file (called by SKILL.md after user picks snooze)
 #   --auto     set auto_upgrade: true in config (called by SKILL.md)
 set -euo pipefail
@@ -23,7 +23,6 @@ set -euo pipefail
 SKILL_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && cd .. && pwd)"
 STATE_DIR="${HOME}/.heurist"
 CONFIG_FILE="${STATE_DIR}/config.yaml"
-CACHE_FILE="${STATE_DIR}/last-update-check"
 SNOOZE_FILE="${STATE_DIR}/update-snoozed"
 MARKER_FILE="${STATE_DIR}/just-upgraded-from"
 PUBLIC_REPO="https://github.com/heurist-network/heurist-finance.git"
@@ -65,12 +64,8 @@ fi
 if [ "${1:-}" = "--mark-upgraded" ]; then
   # Write just-upgraded marker. Usage: check-update.sh --mark-upgraded <old-version>
   echo "${2:-unknown}" > "$MARKER_FILE"
-  rm -f "$SNOOZE_FILE" "$CACHE_FILE"
+  rm -f "$SNOOZE_FILE"
   exit 0
-fi
-
-if [ "${1:-}" = "--force" ]; then
-  rm -f "$CACHE_FILE"
 fi
 
 # ── Check if auto-update check is disabled ────────────────────────────────────
@@ -93,7 +88,6 @@ fi
 if [ -f "$MARKER_FILE" ]; then
   OLD=$(cat "$MARKER_FILE" 2>/dev/null | tr -d '[:space:]')
   rm -f "$MARKER_FILE" "$SNOOZE_FILE"
-  echo "UP_TO_DATE $LOCAL" > "$CACHE_FILE"
   if [ -n "$OLD" ]; then
     echo "{\"just_upgraded\":true,\"from\":\"${OLD}\",\"to\":\"${LOCAL}\"}"
     exit 0
@@ -138,43 +132,7 @@ check_snooze() {
   return 1  # expired
 }
 
-# ── Check cache freshness ────────────────────────────────────────────────────
-# UP_TO_DATE: 60 min TTL. UPGRADE_AVAILABLE: 720 min TTL.
-if [ -f "$CACHE_FILE" ]; then
-  CACHED="$(cat "$CACHE_FILE" 2>/dev/null || true)"
-  case "$CACHED" in
-    UP_TO_DATE*)        CACHE_TTL=60 ;;
-    UPGRADE_AVAILABLE*) CACHE_TTL=720 ;;
-    *)                  CACHE_TTL=0 ;;
-  esac
-
-  STALE=$(find "$CACHE_FILE" -mmin +$CACHE_TTL 2>/dev/null || true)
-  if [ -z "$STALE" ] && [ "$CACHE_TTL" -gt 0 ]; then
-    case "$CACHED" in
-      UP_TO_DATE*)
-        CACHED_VER="$(echo "$CACHED" | awk '{print $2}')"
-        if [ "$CACHED_VER" = "$LOCAL" ]; then
-          echo "{\"current\":\"${LOCAL}\",\"latest\":\"${LOCAL}\",\"update_available\":false}"
-          exit 0
-        fi
-        ;;
-      UPGRADE_AVAILABLE*)
-        CACHED_OLD="$(echo "$CACHED" | awk '{print $2}')"
-        if [ "$CACHED_OLD" = "$LOCAL" ]; then
-          CACHED_NEW="$(echo "$CACHED" | awk '{print $3}')"
-          if check_snooze "$CACHED_NEW"; then
-            echo '{"skipped":true,"reason":"snoozed"}'
-            exit 0
-          fi
-          echo "{\"current\":\"${LOCAL}\",\"latest\":\"${CACHED_NEW}\",\"update_available\":true}"
-          exit 0
-        fi
-        ;;
-    esac
-  fi
-fi
-
-# ── Slow path: fetch remote version ──────────────────────────────────────────
+# ── Fetch remote version ──────────────────────────────────────────────────────
 LATEST_TAG=$(git ls-remote --tags --sort=-v:refname "$PUBLIC_REPO" 2>/dev/null \
   | head -1 \
   | sed 's/.*refs\/tags\///' \
@@ -183,20 +141,16 @@ LATEST_TAG=$(git ls-remote --tags --sort=-v:refname "$PUBLIC_REPO" 2>/dev/null \
   || echo "")
 
 if [ -z "$LATEST_TAG" ]; then
-  echo "UP_TO_DATE $LOCAL" > "$CACHE_FILE"
   echo "{\"current\":\"${LOCAL}\",\"latest\":null,\"update_available\":false,\"reason\":\"no remote tags found\"}"
   exit 0
 fi
 
 if [ "$LOCAL" = "$LATEST_TAG" ]; then
-  echo "UP_TO_DATE $LOCAL" > "$CACHE_FILE"
   echo "{\"current\":\"${LOCAL}\",\"latest\":\"${LATEST_TAG}\",\"update_available\":false}"
   exit 0
 fi
 
 # Versions differ — upgrade available
-echo "UPGRADE_AVAILABLE $LOCAL $LATEST_TAG" > "$CACHE_FILE"
-
 # Check auto_upgrade config
 if [ -f "$CONFIG_FILE" ]; then
   AUTO_UP=$(grep -E '^auto_upgrade:' "$CONFIG_FILE" 2>/dev/null | awk '{print $2}' || echo "false")
