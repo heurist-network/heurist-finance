@@ -44,49 +44,67 @@ price level or event that would flip your thesis. "Above $197 on volume" not
 **Responsive widths**: Chart at `w: 0.55`, technical at `w: 0.45` when terminal
 width >= 100 columns.
 
-## Interactive Flow (MANDATORY - use ask tool)
+## Entry Behavior
 
-Complete all questions before any MCP calls.
+**Default: Standard depth, Full 360°. Start fetching immediately.**
 
-### User Impatience Protocol
+Intent, style, and horizon were detected by the main router in `../../SKILL.md`
+before this skill was loaded. Use those values to configure the pipeline below.
+Do not re-ask questions the router already resolved.
 
-If the user says "skip the questions" or "just get the data":
-1. Say: "Got it - running Standard depth, full 360°."
-2. Use Standard + Full 360° as defaults. Proceed immediately.
-3. Do not ask a third time.
+### When to pause before fetching (three cases only)
 
-If the user provides a ticker with no further instruction:
-Default to Standard + Full 360°. No questions needed - go.
+**Case 1 — Ticker ambiguity**: Two or more plausible securities map to the same
+input. Follow the Ticker Resolution rules in `../../SKILL.md`. Ask only when the
+user's wording doesn't resolve it. This is the only hard stop.
 
-### Step 1 - Depth
+**Case 2 — Bare ticker or generic phrase with no intent signal**: "NVDA" alone,
+"what do you think about Apple?" with no style, horizon, or intent context passed
+from the router. Ask one compound question — not three sequential stops:
 
-Ask in your own voice. These are the depth levels, not a script to read verbatim.
+> "[TICKER] — trading it or investing? And your angle: momentum/chart, fundamentals,
+> or a specific catalyst?"
 
-- **Quick** - price and technicals only (~3-5 tools, ~10 seconds)
-- **Standard** - quote, technicals, fundamentals, filings, macro (~8-12 tools, ~30 seconds) **(Recommended)**
-- **Deep** - full forensic including balance sheet trends, activist watch, filing diffs (~12-15 tools, ~45 seconds)
+Map the answer to pipeline config (see table below) and proceed immediately.
 
-Once the user picks a depth level, they've committed to a phase scope:
+**Case 3 — Vague buy/sell question without a ticker**: "Should I buy something?",
+"What do you recommend?" Ask:
 
-| Choice | Phases run |
-|--------|-----------|
-| Quick | Phases 1-2 only |
-| Standard | Phases 1-4 |
-| Deep | All phases |
+> "What's the time horizon and style — quick trade or longer investment?
+> Momentum, fundamentals, or a theme?"
 
-**STOP - wait for user response before continuing.**
+Then route to the appropriate sub-skill. Do not run the analyst pipeline on a
+screening request.
 
-### Step 2 - Focus
+### Depth and phase mapping
 
-Ask in your own voice. These are the focus angles, not a script to read verbatim.
+Depth is derived from intent and horizon — never asked directly.
 
-- **Technical** - price action, momentum, RSI, support/resistance
-- **Fundamental** - revenue, EPS, filings, insider moves
-- **Full 360°** - everything synthesized into one thesis **(Recommended)**
+| Intent | Style | Horizon | Depth | Phases |
+|--------|-------|---------|-------|--------|
+| `entry` | `technical` | short | Quick | 1, 2, + options overlay (Phase 2.5) |
+| `entry` | `fundamental` | short | Standard | 1, 2, 3 |
+| `entry` | `full_360` | any | Standard | 1, 2, 3, 4 |
+| `position_check` | any | any | Quick→targeted | 1, 2; then targeted re-check of invalidation conditions |
+| `thesis_build` | `technical` | long | Standard | 1, 2, 3, 4 |
+| `thesis_build` | `fundamental` | long | Standard/Deep | 1, 2, 3, 4, 5 |
+| `thesis_build` | `full_360` | any | Standard | 1, 2, 3, 4 (current default) |
+| any | any | unspecified | Standard | 1, 2, 3, 4 |
 
-**STOP - wait for user response before continuing.**
+### Verdict emphasis by intent
 
-### Step 3 - Theme (first run only)
+The verdict content shifts based on intent — same sections API, different ordering
+and emphasis:
+
+- **`entry`**: `levels` section leads (support, resistance, entry zone). Thesis is
+  1-2 sentences max. Invalidation is the most important section.
+- **`position_check`**: Open with whether the original thesis still holds.
+  Check invalidation conditions against current price. Any new filings or
+  insider moves since last session?
+- **`thesis_build`**: Full conviction statement. Thesis leads. Catalysts and
+  risks fully enumerated. Levels are secondary to the narrative.
+
+### Theme (first run, TUI mode only — after first render)
 
 Check whether `~/.heurist/config.yaml` exists and contains `first_run: true`:
 
@@ -95,16 +113,12 @@ Check whether `~/.heurist/config.yaml` exists and contains `first_run: true`:
   && echo "FIRST_RUN" || echo "RETURNING"
 ```
 
-If `FIRST_RUN` AND Terminal mode: **ASK** the user to pick a terminal theme:
+If `FIRST_RUN` AND Terminal mode: after the first render completes, offer theme
+selection as a follow-up — not before data fetching. The user should see the
+default Heurist theme first, then decide if they want to change it.
 
-- **Heurist** - Lime + purple, the brand **(Recommended)**
-- **Terminal Cyan** - Cool blue-green, easy on the eyes
-- **Bloomberg** - Amber-on-black, classic terminal
-- **Monochrome** - Pure B&W, max readability
-- **Solarized Dark** - Warm dark base, reduced contrast
-- **Dracula** - Purple accents, vivid colors
-
-Skip theme question entirely in Research mode - themes only affect TUI.
+> "Dashboard is live. Theme is Heurist (lime + purple) by default — want to
+> switch to Bloomberg (amber), Terminal Cyan, Monochrome, Solarized, or Dracula?"
 
 Save the choice to `~/.heurist/config.yaml`:
 
@@ -117,7 +131,7 @@ EOF
 
 Theme slugs: `terminal-cyan`, `bloomberg`, `monochrome`, `solarized-dark`, `dracula`.
 
-**Do not ask about theme on repeat runs.**
+Skip in Research mode. Do not ask on repeat runs.
 
 ---
 
@@ -174,7 +188,32 @@ mcp__heurist-finance__yahoofinanceagent_company_fundamentals { symbols: [yahoo_s
 
 Phase 2 result → POST quote, chart, technical, analyst panels.
 
-### Phase 3 - SEC & Ownership (Standard + Deep, parallel)
+### Phase 2.5 - Options Overlay (entry + technical intent only, parallel with Phase 2)
+
+Run this phase alongside Phase 2 when intent is `entry` and style is `technical`.
+Options positioning is more predictive of short-term moves than fundamentals for
+traders — it belongs here, not at the end.
+
+```
+mcp__heurist-finance__yahoofinanceagent_options_expirations  { symbol: yahoo_symbol }
+```
+
+Then, using the nearest monthly expiration:
+
+```
+mcp__heurist-finance__yahoofinanceagent_options_chain  {
+  symbol: yahoo_symbol,
+  expiration: "<nearest-monthly-YYYY-MM-DD>",
+  side: "both",
+  moneyness: "all",
+  limit_contracts: 10
+}
+```
+
+Extract: P/C OI ratio, max pain, ATM straddle (implied move), call wall, put floor.
+POST options panel alongside Phase 2 panels. Skip silently if not optionable.
+
+### Phase 3 - SEC & Ownership (intent: entry/fundamental, thesis_build, or position_check; parallel)
 
 ```
 mcp__heurist-finance__secedgaragent_filing_timeline       { query: cik, limit: 10 }
@@ -187,7 +226,7 @@ mcp__heurist-finance__secedgaragent_institutional_holders { query: cik, limit: 1
 Phase 3 result → POST updated panels (insider net buy/sell enriches verdict; filing
 recency enriches news panel).
 
-### Phase 4 - Web Context & Macro (Standard + Deep, parallel)
+### Phase 4 - Web Context & Macro (intent: thesis_build or entry/full_360; parallel)
 
 ```
 mcp__heurist-finance__exasearchdigestagent_exa_web_search { query: "<company> stock analysis outlook", num_results: 5 }
@@ -197,7 +236,7 @@ mcp__heurist-finance__yahoofinanceagent_news_search       { query: yahoo_symbol,
 
 Phase 4 result → POST news panel, macro panel, and initial verdict.
 
-### Phase 5 - Filing Diff (Deep only, or if last filing < 45 days ago)
+### Phase 5 - Filing Diff (thesis_build/fundamental or if last filing < 45 days ago)
 
 ```
 mcp__heurist-finance__secedgaragent_filing_diff { query: cik, form: "10-K" }
@@ -206,7 +245,7 @@ mcp__heurist-finance__secedgaragent_filing_diff { query: cik, form: "10-K" }
 If the most recent 10-K or 10-Q was filed in the last 45 days, run this
 automatically in Standard mode too - material changes are high-signal.
 
-### Additional Phase 5 (Deep only, parallel with filing diff)
+### Additional Phase 5 - Balance sheet + activist (thesis_build/fundamental only, parallel with filing diff)
 
 ```
 mcp__heurist-finance__secedgaragent_xbrl_fact_trends { query: cik, metric: "assets", limit: 8 }
@@ -214,11 +253,11 @@ mcp__heurist-finance__secedgaragent_xbrl_fact_trends { query: cik, metric: "liab
 mcp__heurist-finance__secedgaragent_activist_watch   { query: cik }
 ```
 
-### Phase 6 - Options Overlay (Deep only, parallel)
+### Phase 6 - Options Overlay (thesis_build only — if NOT already run in Phase 2.5)
 
-Fetch the nearest options chain to gauge market positioning and implied move.
-This adds a sentiment layer that fundamental and technical data alone cannot
-provide - put/call OI ratio reveals how the derivatives market is positioned.
+Only run this phase when intent is `thesis_build` and Phase 2.5 was NOT already
+run. For `entry + technical` intent, options were already fetched in Phase 2.5.
+For thesis builders, options add a positioning layer to the full picture.
 
 ```
 mcp__heurist-finance__yahoofinanceagent_options_expirations  { symbol: yahoo_symbol }
@@ -244,20 +283,20 @@ Extract and include in the verdict:
 
 POST Phase 6: options summary panel patched onto the existing canvas.
 
-**Note:** If `options_expirations` returns no data (stock not optionable or
-data unavailable), skip silently - do not block the analysis.
+**Note:** If `options_expirations` returns no data, skip silently.
 
-### Mode Summary
+### Phase Summary
 
-| Phase | Quick | Standard | Deep |
-|-------|-------|----------|------|
-| 1 - Resolution | Yes | Yes | Yes |
-| 2 - Market data | Yes | Yes | Yes |
-| 3 - SEC & ownership | No | Yes | Yes |
-| 4 - Web & macro | No | Yes | Yes |
-| 5 - Filing diff | No | If recent | Yes |
-| 5 - Balance sheet + activist | No | No | Yes |
-| 6 - Options overlay | No | No | Yes |
+| Phase | entry/technical | entry/fundamental | entry/full_360 | position_check | thesis_build |
+|-------|----------------|------------------|----------------|---------------|--------------|
+| 1 - Resolution | Yes | Yes | Yes | Yes | Yes |
+| 2 - Market data | Yes | Yes | Yes | Yes | Yes |
+| 2.5 - Options overlay | **Yes** | No | No | No | No |
+| 3 - SEC & ownership | No | Yes | Yes | Targeted | Yes |
+| 4 - Web & macro | No | No | Yes | No | Yes |
+| 5 - Filing diff | No | If recent | If recent | If recent | Yes |
+| 5 - Balance sheet + activist | No | No | No | No | fundamental only |
+| 6 - Options overlay | No (done in 2.5) | No | No | No | Yes |
 
 ---
 

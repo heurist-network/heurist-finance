@@ -38,67 +38,40 @@ Identify the asymmetric trade: where is market consensus wrong about the
 magnitude or direction? The best risk/reward is where the crowd is positioned
 one way and the data says another.
 
-## Interactive Flow
+## Entry Behavior
 
-Ask in your own voice. The options below are guidance, not a script to read verbatim.
+**Default: Full Context scope, inferred timeframe. Start fetching once the event is confirmed.**
 
-### User Impatience Protocol
+### Event confirmation (the only required pause)
 
-If the user says "skip" or provides enough context to proceed (e.g., "FOMC
-March 2025, full context, both before and after"): use sensible defaults (Full
-Context scope, Both timeframe) and go. Don't force the interactive flow when
-intent is clear.
+The event must be unambiguous before any MCP calls. If it's vague (e.g., "the
+announcement", "that thing with rates"), ask for specifics:
 
----
+> "Which event — what happened, when, and for which instrument or ticker?"
 
-## Session Memory
+If the event is clear and specific ("FOMC March 2025", "NVDA earnings miss Q4"),
+proceed immediately without asking for acknowledgment.
 
-**Before any MCP calls**: read `~/.heurist/sessions/*.json`. Filter by
-`tickers[]` overlap with the tickers identified for this event. Sort by
-timestamp descending, take last 5. Note if the same event or related
-tickers were analyzed before ("FOMC was analyzed Mar 15 - conviction was
-neutral"). First run (no sessions dir): skip silently.
+**STOP - wait for user response only when the event is genuinely vague.**
 
----
+### Scope (always Full Context — never ask)
 
-## Step 1 - Confirm the Event
+Always run Full Context: event intelligence, affected tickers, price action,
+macro regime. Historical analogs are a follow-up drill, offered after the initial
+render if the data suggests prior precedent matters.
 
-If the event description is vague (e.g. "the announcement", "that thing with
-rates"), **ASK for specifics before proceeding**. You need: date, ticker or
-instrument, and what kind of event it is.
+### Timeframe (infer from event timing — never ask)
 
-If the event name is clear and unambiguous, confirm it back to the user, then
-**STOP and wait for acknowledgment before Step 2.**
+Determine `EVENT_TIMEFRAME` from context:
 
-**STOP - wait for user response before continuing.**
+| Condition | Timeframe |
+|-----------|-----------|
+| Event is in the future (upcoming earnings, scheduled FOMC) | `pre_event` |
+| Event already happened (past date, confirmed result) | `post_event` |
+| User says "before and after", "full picture", or both dates present | `both` |
+| Unclear or ongoing (multi-day event, in-progress) | `both` |
 
----
-
-## Step 2 - Scope
-
-**ASK** how wide to cast the net. Options:
-
-- **Affected Tickers** - Just the affected names, price action and positioning
-- **Full Context** - Event details, market reaction, macro regime **(Recommended)**
-- **Historical** - How similar events played out before
-
-Record the user's choice as `EVENT_SCOPE`.
-
-**STOP - wait for user response before continuing.**
-
----
-
-## Step 3 - Timeframe
-
-**ASK** pre-event, post-event, or both. Options:
-
-- **Pre-event** - What's the setup heading in?
-- **Post-event** - What actually happened?
-- **Both** - Full before/after picture **(Recommended)**
-
-Record the user's choice as `EVENT_TIMEFRAME`.
-
-**STOP - wait for user response before continuing. Do not proceed to data fetching until Steps 1–3 are complete.**
+Set `EVENT_TIMEFRAME` silently. Do not ask the user which window they want.
 
 ---
 

@@ -503,29 +503,99 @@ curl -sf "http://127.0.0.1:${PORT}/connect" \
 
 **Do NOT proceed to routing until the dashboard is connected.**
 
+### Intent Detection
+
+Before routing, identify **what the user is trying to decide** — not just what query type they asked. Intent determines which data matters and in what order. Most intents can be inferred from the query text. Only pause and ask when genuinely ambiguous.
+
+#### Intent taxonomy
+
+| Intent | Signal phrases | Effect on pipeline |
+|--------|---------------|-------------------|
+| `entry` | "thinking of buying", "good entry?", "where to get in", "should I buy" | Technicals + options positioning first; levels are primary output |
+| `position_check` | "I own it", "should I hold", "adding to my position", "it's down X%" | Invalidation check first; news + recent filings take priority |
+| `thesis_build` | "analyze", "deep dive", "understand the business", "initiation", "full tearsheet" | Full analyst pipeline |
+| `quick_check` | "where is X", "price of", "quick look", "what's X at" | Route to `desk` skill, not `analyst` |
+| `screening` | "what should I buy", "find me something in", "give me ideas" | Route to `sector` skill or `equity_screen` |
+| `event_driven` | "what happens if", "earnings impact", "FOMC effect on X", "catalyst for" | Route to `risk` skill |
+
+#### Trading style signals (for analyst-routed queries)
+
+Infer from query text. No question needed when signal is present.
+
+| Style | Signal words | Pipeline priority |
+|-------|-------------|------------------|
+| `technical` | "RSI", "chart", "momentum", "support", "resistance", "moving average", "breakout" | Phase 2 primary; options overlay included |
+| `fundamental` | "earnings", "revenue", "margins", "filings", "balance sheet", "valuation" | Phase 3 primary; xbrl_fact_trends prioritized |
+| `narrative` | "theme", "tailwind", "macro story", "narrative", "sector positioning" | Phase 4 primary; exa_web_search extended |
+| `full_360` | no clear signal | All phases, Standard depth — the default |
+
+#### Horizon signals
+
+| Horizon | Signal words | Depth |
+|---------|-------------|-------|
+| `short` | "trade", "swing", "this week/month", "days", "weeks" | Quick — Phase 1+2 + targeted options |
+| `long` | "invest", "long-term", "6 months", "next year", "thesis" | Standard or Deep |
+| `unspecified` | no signal | Standard — covers both adequately |
+
+#### When to pause and ask
+
+Pause before fetching data in exactly three cases:
+
+**Case 1 — Ticker ambiguity**: Two or more plausible securities share the same root (BHP vs BHP.AX, SHOP vs SHOP.TO). Use the Ticker Resolution rules below. Ask only when the user's wording doesn't resolve it.
+
+**Case 2 — Unclear intent on a single ticker**: The query is a bare ticker ("NVDA") or a generic phrase ("what do you think about Apple?") with no intent, style, or horizon signals. Ask one compound question:
+
+> "[TICKER] — trading it or investing? And your angle: momentum/chart, fundamentals, or a specific catalyst?"
+
+The answer maps to a pipeline configuration:
+
+| Answer | Intent | Style | Depth |
+|--------|--------|-------|-------|
+| "trading, momentum" | `entry` | `technical` | Quick — Phase 1+2, options overlay |
+| "trading, fundamentals" | `entry` | `fundamental` | Standard — Phase 1+2+3 |
+| "trading, catalyst" | `event_driven` | — | Route to `risk` skill |
+| "investing, momentum" | `thesis_build` | `technical` | Standard — Phase 2 leads |
+| "investing, fundamentals" | `thesis_build` | `fundamental` | Standard or Deep — Phase 3+4 leads |
+| "investing, full picture" | `thesis_build` | `full_360` | Standard — all phases |
+
+**Case 3 — Vague screening request**: "Should I buy this?", "Is X good?", "What should I buy?" without a specific ticker or theme. Ask:
+
+> "What's the time horizon and style — quick trade or longer investment? Momentum, fundamentals, or a theme?"
+
+Then route to `analyst` (if ticker given), `sector` (if theme given), or `screening` path.
+
+**Do not ask** just because a query is short. "NVDA bull run" has enough signal (bull, momentum, infer `entry` + `technical`). "NVDA deep dive" has enough signal (thesis_build, full_360). Infer aggressively; ask only when two or more plausible interpretations would produce materially different outputs.
+
+---
+
 ### Routing
 
-If the user provided a query, route based on intent:
+Route after intent is detected. Pass intent, style, and horizon to the sub-skill as context — the sub-skill pipeline uses these to determine phase order and verdict emphasis.
 
-| Intent | Sub-skill | Example |
-|--------|-----------|---------|
-| Single ticker | `heurist-finance/analyst` | "NVDA", "what do you think about Apple" |
-| Compare | `heurist-finance/compare` | "NVDA vs AMD", "compare big tech" |
-| Sector | `heurist-finance/sector` | "semiconductors", "AI stocks" |
-| Macro | `heurist-finance/macro` | "inflation outlook", "what's the Fed doing" |
+| Query type | Sub-skill | Examples |
+|------------|-----------|---------|
+| Single ticker (any intent except `quick_check`) | `heurist-finance/analyst` | "NVDA", "should I buy AAPL", "TSLA deep dive" |
+| Single ticker, `quick_check` intent | `heurist-finance/desk` | "where is NVDA", "what's AAPL at", "quick look at SPY" |
+| Compare tickers | `heurist-finance/compare` | "NVDA vs AMD", "compare big tech" |
+| Sector or theme | `heurist-finance/sector` | "semiconductors", "AI stocks", "energy transition" |
+| Macro regime | `heurist-finance/macro` | "inflation outlook", "what's the Fed doing" |
 | Market overview | `heurist-finance/desk` | "how's the market", "pulse" |
-| Event | `heurist-finance/risk` | "FOMC impact", "tariff analysis" |
-| Options | `heurist-finance/options` | "AAPL options", "show me the chain for TSLA", "put/call ratio" |
-| Futures/Commodities | `heurist-finance/futures` | "oil futures", "gold", "commodity dashboard", "CL=F" |
+| Event or catalyst | `heurist-finance/risk` | "FOMC impact", "tariff analysis", "NVDA earnings play" |
+| Options chain | `heurist-finance/options` | "AAPL options", "show me the chain for TSLA", "put/call ratio" |
+| Futures / commodities | `heurist-finance/futures` | "oil futures", "gold", "commodity dashboard", "CL=F" |
 | Watchlist | `heurist-finance/watch` | "my watchlist", "tracked tickers" |
+| Screening / ideas | `heurist-finance/sector` + `equity_screen` | "what should I buy", "find me a value play" |
 
-If no query, ask what they want to look at. Keep it natural - you're at
-the desk, someone walked in. Simply "What are we looking at? For example, you can ask me..." is fine.
-Don't present a numbered menu unless the user seems lost.
+If no query at all, ask naturally — you're at the desk, someone walked in:
+> "What are we looking at?"
+
+Do not present a menu. One sentence. Wait for the response and then apply intent detection to whatever they say.
 
 After routing, set these for telemetry:
 - `_SKILL` = the sub-skill name (analyst, compare, desk, etc.)
 - `_QUERY` = the user's original query text
+- `_INTENT` = detected intent (entry, position_check, thesis_build, quick_check, screening, event_driven)
+- `_STYLE` = detected style (technical, fundamental, narrative, full_360)
 
 ### Sub-skill Files
 
@@ -1095,15 +1165,17 @@ _TEL_END=$(date +%s)
 if [ -z "$_TEL_START" ]; then _TEL_DUR=-1; else _TEL_DUR=$(( _TEL_END - _TEL_START )); fi
 _QUERY_SAFE=$(printf '%s' "$_QUERY" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr -d '\n')
 _SKILL_SAFE=$(printf '%s' "$_SKILL" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr -d '\n')
+_INTENT_SAFE=$(printf '%s' "${_INTENT:-unspecified}" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr -d '\n')
+_STYLE_SAFE=$(printf '%s' "${_STYLE:-full_360}" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr -d '\n')
 _TEL_CFG=$(~/.agents/skills/heurist-finance/bin/hf-config get telemetry 2>/dev/null || echo "off")
 if [ "$_TEL_CFG" = "off" ] || [ -z "$_TEL_CFG" ]; then
   # Telemetry disabled - skip
   true
 else
-  echo '{"event":"session_end","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","session_id":"'"$_SESSION_ID"'","skill":"'"$_SKILL_SAFE"'","query":"'"$_QUERY_SAFE"'","duration_s":'"$_TEL_DUR"',"outcome":"OUTCOME","tools_called":TOOLS,"panels_rendered":PANELS}' >> ~/.heurist/analytics/sessions.jsonl 2>/dev/null || true
+  echo '{"event":"session_end","ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","session_id":"'"$_SESSION_ID"'","skill":"'"$_SKILL_SAFE"'","query":"'"$_QUERY_SAFE"'","intent":"'"$_INTENT_SAFE"'","style":"'"$_STYLE_SAFE"'","duration_s":'"$_TEL_DUR"',"outcome":"OUTCOME","tools_called":TOOLS,"panels_rendered":PANELS}' >> ~/.heurist/analytics/sessions.jsonl 2>/dev/null || true
 fi
 ```
 
-Replace `OUTCOME` with `success`, `error`, or `abort`. Replace `TOOLS` and `PANELS` with the actual counts from the session. Replace `_SKILL` and `_QUERY` with the sub-skill name and user query.
+Replace `OUTCOME` with `success`, `error`, or `abort`. Replace `TOOLS` and `PANELS` with actual counts. Replace `_SKILL`, `_QUERY`, `_INTENT`, and `_STYLE` with the values detected during the session.
 
 This runs in the background and never blocks the user.

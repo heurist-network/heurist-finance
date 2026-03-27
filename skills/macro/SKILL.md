@@ -41,37 +41,24 @@ fractional widths for side-by-side panels: chart at `w: 0.55`, technical at
 
 ---
 
-## Interactive Flow
+## Entry Behavior
 
-Ask in your own voice. The options below are guidance, not a script to read verbatim.
+**Default: Full Regime, Standard depth. Start fetching immediately.**
 
-### User Impatience Protocol
+Always run the full regime picture — inflation, growth, labor, rates, calendar.
+Selective deep-dives (inflation only, rates only) are available as follow-up
+drills after the initial render, not as upfront questions.
 
-If the user says "skip" or gives enough context to proceed (e.g., "just give me
-the full picture"): use sensible defaults (Full Regime, Standard depth) and go.
-Don't force the interactive flow when intent is clear.
+**Only pause if** the user's query contains a specific focus that changes the
+pipeline materially (e.g., "just the inflation picture", "rates deep-dive only",
+"what's printing this week"). In those cases, honor the explicit focus and skip
+the other pillars. No question needed — infer from the query.
 
-### Step 1 - Focus
+### Depth defaults (never ask)
 
-**ASK** what part of the regime they want to watch. Options:
-
-- **Full regime** - inflation, growth, labor, rates. The whole picture. *(Recommended)*
-- **Inflation deep-dive** - CPI, PCE, PPI. How sticky is it really?
-- **Growth and labor** - is the economy cracking or just slowing?
-- **Rates and the curve** - where's the Fed going and what's priced in?
-- **Calendar** - what's printing in the next 30 days that could move markets?
-
-**STOP - wait for user response before continuing.**
-
-### Step 2 - Depth
-
-**ASK** how much depth they want. Options:
-
-- **Quick read** - top-level gauges, 30 seconds
-- **Standard** - full pillar breakdown with trends *(Recommended)*
-- **Deep** - vintage data, calendar context, the full picture
-
-**STOP - wait for user response before continuing.**
+- **Standard**: default — full pillar breakdown with trends
+- **Quick**: if user says "quick", "fast", "30 seconds", "top-line"
+- **Deep**: if user says "full picture", "vintage data", "deep", "everything"
 
 ---
 

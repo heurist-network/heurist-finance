@@ -40,53 +40,35 @@ is analysis. A table of strikes is Yahoo Finance.
 **Bounded**: Options analysis requires spot context. Always fetch the underlying
 quote and technicals alongside the chain - never analyze options in a vacuum.
 
-## Interactive Flow
+## Entry Behavior
 
-Ask in your own voice. The options below are guidance, not a script to read verbatim.
+**Default: Standard depth, nearest monthly expiration, both calls and puts. Start fetching immediately once the underlying is confirmed.**
 
-### User Impatience Protocol
+### Underlying confirmation (the only required pause)
 
-If the user says "skip" or provides enough context (e.g., "AAPL options, nearest
-monthly, both sides"): use sensible defaults (Standard depth, nearest monthly,
-both calls and puts) and go. Don't force the interactive flow when intent is clear.
+If the ticker is clear ("AAPL options"), confirm and proceed. If ambiguous,
+resolve via `resolve_symbol` — ask the user only when two plausible securities
+share the same root.
 
-If the user provides a ticker with "options" and no further instruction:
-Default to Standard + nearest monthly + both sides. No questions - go.
+**STOP - wait for user response only if the underlying is genuinely ambiguous.**
 
-### Step 1 - Confirm Underlying
+### Defaults (never ask about these)
 
-If the ticker is clear, confirm it. If ambiguous, resolve via `resolve_symbol`.
+- **Scope**: Standard — expiration discovery, one chain with full OI/volume analysis, spot overlay
+- **Expiration**: nearest monthly expiration. Honor explicit overrides from query text:
+  - "weeklies" / "this week" → nearest weekly
+  - "let me pick" / "show me the expirations" → fetch `options_expirations`, present them, ask which one
+  - specific date or DTE → use it
+- **Sides**: both calls and puts
+- **Depth upgrades**: use explicitly stated signals only:
+  - "term structure", "skew", "multiple expirations", "deep" → Phase 1-4 (Deep)
+  - "quick", "just the chain", "fast" → Phase 1-2 (Quick chain)
 
-**STOP - wait for user response only if ambiguous.**
-
-### Step 2 - Scope
-
-**ASK** what they want to see. Options:
-
-- **Quick chain** - nearest expiration, ATM +/- 5 strikes, key OI levels (~3-5 tools, ~10 seconds)
-- **Standard** - expiration discovery, one chain with full OI/volume analysis, spot overlay (~6-8 tools, ~20 seconds) **(Recommended)**
-- **Deep** - multiple expirations, term structure comparison, full skew analysis (~10-12 tools, ~30 seconds)
-
-| Choice | Phases run |
-|--------|-----------|
-| Quick chain | Phases 1-2 only |
-| Standard | Phases 1-3 |
-| Deep | All phases |
-
-**STOP - wait for user response before continuing.**
-
-### Step 3 - Expiration Preference (Standard and Deep only)
-
-**ASK** which expiration window they care about. Options:
-
-- **Nearest monthly** - the next standard monthly expiration **(Recommended)**
-- **Weeklies** - nearest 1-2 weekly expirations (higher gamma, less OI)
-- **Specific date** - user names a date or DTE range
-- **Let me pick** - you'll show expirations and the user chooses after seeing them
-
-If "Let me pick": fetch expirations first, present them, then ASK which one.
-
-**STOP - wait for user response before continuing.**
+| Depth | Phases | When |
+|-------|--------|------|
+| Quick chain | 1-2 | Explicit "quick" signal |
+| Standard | 1-3 | Default |
+| Deep | 1-4 | Explicit "deep" / "term structure" / "skew" signal |
 
 ---
 

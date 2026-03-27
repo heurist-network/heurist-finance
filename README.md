@@ -34,7 +34,7 @@ You make the call.
 **Requirements:** Node.js 18+
 
 ```bash
-npx @heurist-network/skills add heurist-finance
+npx @heurist-network/skills add finance
 ```
 
 Open two panes - agent on one side, terminal on the other:

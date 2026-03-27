@@ -32,48 +32,36 @@ In the verdict, name the rotation trade: what to overweight and what to
 underweight. "Semiconductors look good" is useless. "Overweight AVGO on custom
 ASIC tailwinds, underweight INTC on execution risk" is a trade.
 
-## Interactive Flow
+## Entry Behavior
 
-Ask in your own voice. The options below are guidance, not a script to read verbatim.
+**Default: Full Sector Map, Standard depth. Start fetching once the sector is confirmed.**
 
-### User Impatience Protocol
+### Sector confirmation (the only required pause)
 
-If the user says "skip" or provides enough context to proceed (e.g., "give me
-the full semiconductor picture"): use sensible defaults (Full Sector Map,
-Standard depth) and go. Don't force the interactive flow when intent is clear.
+A sector or theme must be unambiguous before any MCP calls. This is the only
+question asked.
 
-### Step 1 - Confirm sector / theme
+**If specific** (e.g., "semiconductors", "energy transition", "AI infrastructure"):
+state it back and proceed immediately — no acknowledgment wait needed:
+> "Running the semiconductor landscape."
 
-If the user's input is specific (e.g. "semiconductors", "energy transition"),
-confirm the sector back to the user, then **STOP and wait for acknowledgment
-before Step 2.**
+**If vague** (e.g., "tech", "green stuff", "something in energy"): ask for
+clarification with 4–6 concrete sub-themes:
+> "Which part of tech? Semis, software, cloud infra, consumer hardware, or the
+> full sector?"
 
-If the input is vague (e.g. "tech", "green stuff"), **ASK** what they want to
-focus on. Offer 4–6 concrete sub-themes based on the stated sector, plus a
-"Full sector - show me everything" option. Wait for the response before continuing.
+Wait for the response, then go.
 
-**STOP - wait for user response before continuing.**
+**STOP - wait for user response only when the sector is genuinely ambiguous.**
 
-### Step 2 - Analysis type
+### Defaults (never ask about these)
 
-**ASK** what angle they want. Options:
-
-- **Leaders & Laggards** - Who's winning, who's bleeding
-- **Opportunities** - Where's the cheap stock
-- **Risk Landscape** - What could blow this up
-- **Full sector map - leaders, laggards, rotation trade, macro overlay** **(Recommended)**
-
-**STOP - wait for user response before continuing.**
-
-### Step 3 - Depth
-
-**ASK** how much depth they want. Options:
-
-- **Quick** - Just the headlines, ~60 seconds
-- **Standard** - Broad picture **(Recommended)**
-- **Deep** - Full tearsheet, every ticker, every angle
-
-**STOP - wait for user response before continuing. Do not proceed to data fetching until all three steps are answered.**
+- **Analysis type**: always Full Sector Map — leaders, laggards, rotation trade,
+  macro overlay. Specific angles (leaders only, risk landscape only) are
+  available as follow-up drills after the initial render.
+- **Depth**: always Standard
+- If the user explicitly requests a specific angle ("just show me who's lagging",
+  "quick headlines only"), honor it. Otherwise run the full map.
 
 ---
 

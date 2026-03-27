@@ -37,52 +37,36 @@ Pick a winner. Back it with data.
 
 ---
 
-## Interactive Flow
+## Entry Behavior
 
-Ask in your own voice. The options below are guidance, not a script to read verbatim.
+**Default: Full Comparison, 6M timeframe. Start fetching immediately once tickers are confirmed.**
 
-### User Impatience Protocol
+### Ticker confirmation (the only required pause)
 
-If the user says "skip" or provides enough context to proceed (e.g., gives 3
-tickers with a timeframe): use sensible defaults (Full Comparison, 6M) and go.
-Don't force the interactive flow when intent is clear.
+Tickers must be confirmed before any MCP calls. This is the only question asked.
 
-### Step 1 - Confirm Tickers
+If 2–5 tickers were provided with the query (e.g., "compare NVDA AMD INTC"),
+confirm them back in one line and proceed immediately:
+> "NVDA · AMD · INTC — running the comparison."
 
-If tickers were provided with the invocation (e.g., "compare NVDA AMD INTC"),
-confirm them and proceed.
-
-**ASK** if any of these are true:
+**Pause and ask only if:**
 - Fewer than 2 tickers were supplied
 - A name is ambiguous (e.g., "Intel" could be INTC or INTC.L)
 - User said "compare" with no arguments
 
-Options (guidance): confirm as stated, add a third ticker, or change tickers.
+In those cases, ask for the missing or ambiguous ticker in a single question.
+Do not proceed until you have 2–5 confirmed, resolved tickers.
 
-Do not proceed until you have 2–5 confirmed tickers.
+**STOP - wait for user response only in the above cases.**
 
-**STOP - wait for user response before continuing.**
+### Defaults (never ask about these)
 
-### Step 2 - Comparison Type
+- **Comparison type**: always Full Comparison — ranked by conviction, all angles
+- **Timeframe**: always 6M — medium-term is where meaningful patterns show
+- **Depth**: always Standard
 
-**ASK** what angle they want on this comparison. Options:
-
-- **Price Action** - momentum, who's fading
-- **Fundamentals** - valuation, growth, margins
-- **Full Comparison** - everything ranked, one verdict **(Recommended)**
-
-**STOP - wait for user response before continuing.**
-
-### Step 3 - Timeframe
-
-**ASK** for the timeframe. Options:
-
-- **1M** - short-term momentum
-- **3M** - near-term trend
-- **6M** - medium-term, where the real patterns show **(Recommended)**
-- **1Y** - full cycle
-
-**STOP - wait for user response before continuing.**
+If the user explicitly requests a different timeframe or angle ("just technicals",
+"1M momentum"), honor it. Otherwise go with these defaults.
 
 ---
 

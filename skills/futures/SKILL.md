@@ -40,47 +40,35 @@ important as any single move.
 Supply shocks are sharp and mean-revert. Demand shifts are slow and trend. Name
 which one is driving the move - it changes the trade.
 
-## Interactive Flow
+## Entry Behavior
 
-Ask in your own voice. The options below are guidance, not a script to read verbatim.
+**Default: Full Dashboard, Standard depth. Start fetching immediately.**
 
-### User Impatience Protocol
+### Complex detection (infer, never ask)
 
-If the user says "skip" or provides specific futures symbols (e.g., "CL=F GC=F
-quick look"): use sensible defaults and go. Don't force the interactive flow when
-intent is clear.
+Infer the complex from the query text. No question needed.
 
-If the user asks for "commodities" or "futures" with no further instruction:
-Default to Full Dashboard + Standard depth. No questions - go.
+| Query signal | Complex |
+|-------------|---------|
+| "oil", "crude", "energy", "gas", "CL=F", "NG=F" | Energy |
+| "gold", "silver", "metals", "GC=F", "SI=F", "copper" | Metals |
+| "rates", "10Y", "bonds", "ZN=F", "ZB=F", "curve" | Rates |
+| "S&P futures", "ES=F", "NQ=F", "index futures" | Equity index |
+| "futures", "commodities", "commodity dashboard", no specific signal | Full Dashboard |
 
-### Step 1 - Focus
+If the user names specific symbols (e.g., "CL=F GC=F"), run exactly those.
 
-**ASK** which complex they want to watch. Options:
+### Depth defaults (never ask)
 
-- **Full dashboard** - energy, metals, rates, equity indices. The macro tape. **(Recommended)**
-- **Energy** - crude (CL=F), natural gas (NG=F), heating oil (HO=F), gasoline (RB=F)
-- **Metals** - gold (GC=F), silver (SI=F), copper (HG=F), platinum (PL=F)
-- **Rates** - 10Y note (ZN=F), 30Y bond (ZB=F), 2Y note (ZT=F), eurodollar (GE=F)
-- **Equity index** - ES=F (S&P), NQ=F (Nasdaq), YM=F (Dow), RTY=F (Russell)
-- **Specific symbols** - user names exact futures tickers
+- **Standard**: default — full complex with macro overlay
+- **Quick**: if user says "quick", "fast", "snapshot", "just the price"
+- **Deep**: if user says "deep", "full picture", "cross-asset", "everything"
 
-**STOP - wait for user response before continuing.**
-
-### Step 2 - Depth
-
-**ASK** how much depth they want. Options:
-
-- **Quick read** - snapshot + trend for selected complex (~3-5 tools, ~10 seconds)
-- **Standard** - full complex with macro overlay and news (~6-10 tools, ~20 seconds) **(Recommended)**
-- **Deep** - multi-complex cross-asset analysis with regime context (~12-15 tools, ~30 seconds)
-
-| Choice | Phases run |
-|--------|-----------|
-| Quick read | Phases 1-2 only |
-| Standard | Phases 1-3 |
-| Deep | All phases |
-
-**STOP - wait for user response before continuing.**
+| Depth | Phases | When |
+|-------|--------|------|
+| Quick read | 1-2 | Explicit quick signal |
+| Standard | 1-3 | Default |
+| Deep | All | Explicit deep signal |
 
 ---
 
@@ -122,6 +110,8 @@ not supply shock" is a finding. Never narrate.
 Batch all symbols for the selected complex into one or two `futures_snapshot`
 calls (max 10 symbols per call):
 
+Use the `symbols` field with a real array whenever possible. Example:
+
 ```
 mcp__heurist-finance__yahoofinanceagent_futures_snapshot  {
   symbols: ["CL=F", "NG=F", "GC=F", "SI=F", "HG=F", "ZN=F"],
@@ -131,6 +121,11 @@ mcp__heurist-finance__yahoofinanceagent_futures_snapshot  {
   limit_bars: 10
 }
 ```
+
+Do not fan this out into one call per symbol unless you need partial retries.
+If a tool call serializes the list as a comma-separated string such as
+`"CL=F,GC=F,HG=F"`, the backend now coerces it into the same symbol list, but the
+preferred form is still an array.
 
 For Full Dashboard, split into two calls if > 10 symbols.
 
