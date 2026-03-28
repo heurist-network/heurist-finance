@@ -34,21 +34,35 @@ You make the call.
 **Requirements:** Node.js 18+
 
 ```bash
-npx @heurist-network/skills add finance
+npx @heurist-network/skills add heurist-finance
 ```
 
-Open two panes - agent on one side, terminal on the other:
+or specify an agent
+```bash
+npx @heurist-network/skills add heurist-finance -y -a <agent-name>
+```
+
+or tell your agent to
+```
+Install the skill from https://github.com/heurist-network/heurist-finance and set it up
+```
+
+After installing the skill, open two panes - agent on one side, terminal on the other:
 
 ```bash
 # Pane 1: the terminal
 hf
 
 # Pane 2: your agent
-/heurist-finance NVDA
+/heurist-finance set up heurist finance with API key = ...
 ```
 
-The terminal lights up the moment the agent starts fetching. Panels build
-as data arrives.
+The terminal lights up the moment the agent starts fetching. Panels build as data arrives.
+
+### Get API key
+- Option 1: Visit https://heurist.ai/credits
+- Option 2: Let your agent help you claim free credits
+- Option 3: If you have a referral code, visit https://dev-api-form.heurist.ai/
 
 ## The Desk
 

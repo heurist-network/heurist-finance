@@ -192,19 +192,7 @@ We need an API key to use the Heurist Finance MCP. Resolve it in this order:
 2. Check the `HEURIST_API_KEY` environment variable.
 3. If still missing, pause and ask the user to paste their API key.
 
-### [SKIP THIS IF USER ALREADY HAS VALID KEY] Get Credits
-
-Option 1. Visit https://heurist.ai/credits to manage API keys.
-
-Option 2. Claim 100 free credits by posting a verification tweet (only once per user allowed):
-
-1. Call `POST https://mesh.heurist.xyz/claim_credits/initiate` — returns a `verification_code` and `tweet_text`.
-2. Post the tweet text on X (must include `@heurist_ai` and `verification: <code>`).
-3. Call `POST https://mesh.heurist.xyz/claim_credits/verify` with:
-   ```json
-   {"tweet_url": "https://x.com/<user>/status/<id>", "verification_code": "<code>"}
-   ```
-4. Returns success status. One claim per Twitter handle. Code expires in 10 minutes.
+If no API key → See `references/SETUP.md` § Get key and credits.
 
 **CRITICAL: Everything in this remaining section runs silently. No output. No narration.
 No "Let me check..." The first thing the user sees is the analyst speaking -
@@ -223,14 +211,7 @@ SKILL_DIR=~/.agents/skills/heurist-finance
 mkdir -p ~/.heurist ~/.agents/reports
 ```
 
-If `DEPS_MISSING`: `cd $SKILL_DIR && npm install --production`.
-If `LIB_MISSING`: Reinstall from Heurist marketplace.
-
-If setup is required, determine the active terminal agent: `claude-code`, `codex`, or `opencode` then run it silently like this:
-
-```bash
-cd ~/.agents/skills/heurist-finance && HEURIST_API_KEY="$HEURIST_API_KEY" TERMINAL_AGENT="$TERMINAL_AGENT" bash setup.sh
-```
+If `DEPS_MISSING` or `LIB_MISSING` → See `references/SETUP.md` § First Install.
 
 ### Version Check (run silently)
 
@@ -332,10 +313,7 @@ curl -sf "http://127.0.0.1:${PORT}/connect" \
 
 1. Check if `hf` is in PATH.
 
-2. If `hf` is not in PATH, follow **INTERNAL SETUP > API Key Resolution** above, then run:
-   ```bash
-   cd ~/.agents/skills/heurist-finance && HEURIST_API_KEY="$HEURIST_API_KEY" TERMINAL_AGENT="$TERMINAL_AGENT" bash setup.sh
-   ```
+2. If `hf` is not in PATH → See `references/SETUP.md` § First Install to run setup.
 
 3. Tell the user:
 
@@ -391,61 +369,8 @@ echo "TEL_PROMPTED: $_TEL_PROMPTED"
 
 This runs silently. Do not show the output to the user.
 
-If `TEL_PROMPTED` is `no`: This is the user's first session. Give them a warm welcome before anything else.
-
-Tell the user:
-
-> Welcome to **Heurist Finance** - your AI-powered research desk.
->
-> You have a full team of analysts at your command. Ask about any stock,
-> sector, or macro regime and get a conviction note - thesis, evidence,
-> falsifiers, and a verdict. Every query produces a position, not a summary.
->
-> **Your desk:**
-> - `/heurist-finance NVDA` - deep-dive on any ticker
-> - `/heurist-finance how's the market` - market pulse
-> - `/heurist-finance NVDA vs AMD` - side-by-side conviction
->
-> Research renders on `hf` - a live Bloomberg-style dashboard that runs in a
-> separate terminal window. Panels build in real time as data arrives: quotes,
-> charts, technicals, filings, macro overlays, news, and your verdict - all
-> on one dense canvas. Works great in a tmux split next to this conversation.
->
-> Let's get you set up.
-
-Then ask about telemetry:
-
-> One quick thing before we start. Help us make Heurist Finance better?
->
-> Community mode shares anonymous usage data (which skills you use, how long
-> queries take, tool success rates) so we can track trends and fix issues.
-> No portfolio data, no tickers, no query text - ever.
-> Change anytime: `hf-config set telemetry off`
-
-Options:
-- A) Sure, happy to help (Recommended)
-- B) No thanks
-
-If A: run `~/.agents/skills/heurist-finance/bin/hf-config set telemetry community`
-
-If B: ask a follow-up:
-
-> How about anonymous mode? We just learn that *someone* used HF - no unique ID,
-> no way to connect sessions. Just a counter.
-
-Options:
-- A) Anonymous is fine
-- B) No thanks, fully off
-
-If B->A: run `~/.agents/skills/heurist-finance/bin/hf-config set telemetry anonymous`
-If B->B: run `~/.agents/skills/heurist-finance/bin/hf-config set telemetry off`
-
-Always run after consent is resolved:
-```bash
-touch ~/.heurist/.telemetry-prompted
-```
-
-This only happens once. If `TEL_PROMPTED` is `yes`, skip entirely - go straight to routing.
+If `TEL_PROMPTED` is `no` → See `references/SETUP.md` § First-Run Welcome.
+If `TEL_PROMPTED` is `yes`, skip to routing.
 
 After consent is resolved (or skipped for returning users), log the session start:
 ```bash

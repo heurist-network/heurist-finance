@@ -1,7 +1,8 @@
 #!/bin/bash
-# setup.sh — Heurist Finance onboarding
+# setup.sh — Heurist Finance onboarding (headless)
+# Outputs a single JSON line for agent consumption.
 # Idempotent: safe to run multiple times.
-set -euo pipefail
+set -uo pipefail
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -14,116 +15,15 @@ CC_MCP_JSON="$(pwd)/.mcp.json"
 OC_CONFIG_JSON="${HOME}/.config/opencode/opencode.json"
 CODEX_DIR="${HOME}/.codex"
 
-# ---------------------------------------------------------------------------
-# Colors & helpers
-# ---------------------------------------------------------------------------
-BRAND='\033[38;2;192;255;0m'
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-DIM='\033[2m'
-BOLD='\033[1m'
-RESET='\033[0m'
-
-ok()   { printf "  ${GREEN}✓${RESET} %s\n" "$*"; }
-fail() { printf "  ${RED}✗${RESET} %s\n" "$*"; }
-info() { printf "  ${BRAND}→${RESET} %s\n" "$*"; }
-warn() { printf "  ${YELLOW}!${RESET} %s\n" "$*"; }
-
-TOTAL_STEPS=8
-step() {
-  local n=$1; shift
-  local pct=$(( n * 100 / TOTAL_STEPS ))
-  local filled=$(( pct / 5 ))
-  local empty=$(( 20 - filled ))
-  local bar="${BRAND}${BOLD}"
-  for ((i=0; i<filled; i++)); do bar+="█"; done
-  bar+="${DIM}"
-  for ((i=0; i<empty; i++)); do bar+="░"; done
-  bar+="${RESET}"
-  printf "\n  ${bar} ${BOLD}%d/%d${RESET} ${DIM}%s${RESET}\n" "$n" "$TOTAL_STEPS" "$*"
-}
-
-# ---------------------------------------------------------------------------
-# Wordmark
-# ---------------------------------------------------------------------------
-printf "\n"
-printf "${BRAND}${BOLD}"
-printf "  __    __   _______  __    __  .______       __       _______.___________.\n"
-printf "  |  |  |  | |   ____||  |  |  | |   _  \\     |  |     /       |           |\n"
-printf "  |  |__|  | |  |__   |  |  |  | |  |_)  |    |  |    |   (----\`---|  |----\`\n"
-printf "  |   __   | |   __|  |  |  |  | |      /     |  |     \\   \\       |  |\n"
-printf "  |  |  |  | |  |____ |  \`--'  | |  |\\  \\----.|  | .----)   |      |  |\n"
-printf "  |__|  |__| |_______| \\______/  | _| \`._____||__| |_______/       |__|\n"
-printf "\n"
-printf "  _______  __  .__   __.      ___      .__   __.   ______  _______\n"
-printf "  |   ____||  | |  \\ |  |     /   \\     |  \\ |  |  /      ||   ____|\n"
-printf "  |  |__   |  | |   \\|  |    /  ^  \\    |   \\|  | |  ,----'|  |__\n"
-printf "  |   __|  |  | |  . \`  |   /  /_\\  \\   |  . \`  | |  |     |   __|\n"
-printf "  |  |     |  | |  |\\   |  /  _____  \\  |  |\\   | |  \`----.|  |____\n"
-printf "  |__|     |__| |__| \\__| /__/     \\__\\ |__| \\__|  \\______||_______|\n"
-printf "\n"
-printf "       _______. __  ___  __   __       __\n"
-printf "      /       ||  |/  / |  | |  |     |  |\n"
-printf "     |   (----\`|  '  /  |  | |  |     |  |\n"
-printf "      \\   \\    |    <   |  | |  |     |  |\n"
-printf "  .----)   |   |  .  \\  |  | |  \`----.|  \`----.\n"
-printf "  |_______/    |__|\\__\\ |__| |_______||_______|\n"
-printf "${RESET}\n"
-
-ERRORS=0
-
-# ---------------------------------------------------------------------------
-# 1. Node.js version check (>= 18 required)
-# ---------------------------------------------------------------------------
-step 1 "Checking Node.js"
-
-if ! command -v node &>/dev/null; then
-  fail "Node.js not found. Install Node.js >= 18 from https://nodejs.org/"
-  ERRORS=$((ERRORS + 1))
-else
-  NODE_VERSION="$(node --version | sed 's/v//')"
-  NODE_MAJOR="$(echo "$NODE_VERSION" | cut -d. -f1)"
-  if [ "$NODE_MAJOR" -lt 18 ]; then
-    fail "Node.js ${NODE_VERSION} found, but >= 18 is required."
-    ERRORS=$((ERRORS + 1))
-  else
-    ok "Node.js ${NODE_VERSION}"
-  fi
-fi
-
-# If Node is missing, nothing else will work — bail early.
-if [ "$ERRORS" -gt 0 ]; then
-  fail "Fatal: Node.js >= 18 required. Aborting."
-  exit 1
-fi
-
-# ---------------------------------------------------------------------------
-# 2. npm install --production
-# ---------------------------------------------------------------------------
-step 2 "Installing dependencies"
-
-if [ -d "${SKILL_DIR}/node_modules" ]; then
-  ok "Dependencies already installed (node_modules present)"
-else
-  info "Running npm install --production in ${SKILL_DIR}"
-  if npm install --production --prefix "${SKILL_DIR}" 2>&1; then
-    ok "npm install complete"
-  else
-    fail "npm install failed"
-    ERRORS=$((ERRORS + 1))
-  fi
-fi
+ERRORS=()
 
 # ---------------------------------------------------------------------------
 # Helper: resolve API key
 # ---------------------------------------------------------------------------
-# Priority: config.yaml > HEURIST_API_KEY env var
 resolve_api_key() {
   local config_file="${HEURIST_DIR}/config.yaml"
   local key
 
-  # 1. Check config.yaml
   if [ -f "$config_file" ]; then
     key="$(grep -E '^api_key:' "$config_file" 2>/dev/null | sed 's/^api_key:[[:space:]]*//' | tr -d '"'"'" || true)"
     if [ -n "$key" ]; then
@@ -132,7 +32,6 @@ resolve_api_key() {
     fi
   fi
 
-  # 2. Check env var
   if [ -n "${HEURIST_API_KEY:-}" ]; then
     echo "${HEURIST_API_KEY}"
     return 0
@@ -150,17 +49,53 @@ if command -v jq &>/dev/null; then
 fi
 
 # ---------------------------------------------------------------------------
+# Result tracking
+# ---------------------------------------------------------------------------
+NODE_OK=false
+DEPS_OK=false
+API_KEY_OK=false
+MCP_CONFIGURED=false
+HF_COMMAND=false
+MCP_REACHABLE=false
+
+# ---------------------------------------------------------------------------
+# 1. Node.js version check (>= 18 required)
+# ---------------------------------------------------------------------------
+if ! command -v node &>/dev/null; then
+  ERRORS+=("node_missing")
+elif [ "$(node --version | sed 's/v//' | cut -d. -f1)" -lt 18 ]; then
+  ERRORS+=("node_outdated")
+else
+  NODE_OK=true
+fi
+
+# If Node is missing, nothing else will work — bail early.
+if [ "$NODE_OK" != "true" ]; then
+  printf '{"status":"error","errors":["%s"],"agent":"unknown"}\n' "$(IFS='","'; echo "${ERRORS[*]}")"
+  exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# 2. npm install --production
+# ---------------------------------------------------------------------------
+if [ -d "${SKILL_DIR}/node_modules" ]; then
+  DEPS_OK=true
+else
+  if npm install --production --prefix "${SKILL_DIR}" >/dev/null 2>&1; then
+    DEPS_OK=true
+  else
+    ERRORS+=("npm_install_failed")
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # 3. Detect agent, get API key, inject MCP config
 # ---------------------------------------------------------------------------
-step 3 "Detecting agent"
-
-# Detect ALL installed agents, then pick the active one.
 AGENTS=()
 command -v claude &>/dev/null   && AGENTS+=(claude-code)
 command -v opencode &>/dev/null && AGENTS+=(opencode)
 command -v codex &>/dev/null    && AGENTS+=(codex)
 
-# Env-var override takes priority
 if [ -n "${TERMINAL_AGENT:-}" ]; then
   DETECTED_AGENT="${TERMINAL_AGENT}"
 elif [ ${#AGENTS[@]} -eq 0 ]; then
@@ -177,226 +112,170 @@ else
   else
     DETECTED_AGENT="claude-code"
   fi
-  info "Found ${#AGENTS[@]} agents (${AGENTS[*]}), using ${DETECTED_AGENT}"
 fi
 
-info "Detected agent: ${DETECTED_AGENT}"
-
-# Resolve API key (needed for all agents)
+# Resolve API key
 API_KEY="$(resolve_api_key)" || true
 if [ -z "${API_KEY:-}" ]; then
-  fail "Heurist API key not found."
-  info "Configure in ${HEURIST_DIR}/config.yaml or set the HEURIST_API_KEY env var"
-  info "Get a key at https://heurist.ai/credits"
-  fail "Fatal: API key required before MCP configuration. Aborting."
-  exit 1
+  ERRORS+=("api_key_missing")
+else
+  API_KEY_OK=true
 fi
 
-case "$DETECTED_AGENT" in
-  claude-code)
-    if [ -f "${CC_MCP_JSON}" ] && ($HAS_JQ && jq -e '.mcpServers["heurist-finance"]' "$CC_MCP_JSON" &>/dev/null); then
-      ok "heurist-finance already configured in ${CC_MCP_JSON}"
-    else
-      info "Configuring ${CC_MCP_JSON} for Claude Code"
-      if [ ! -f "$CC_MCP_JSON" ]; then
-        info "Creating ${CC_MCP_JSON}"
-        echo '{}' > "$CC_MCP_JSON"
-      fi
-      if $HAS_JQ; then
-        tmp="$(mktemp)"
-        jq --arg url "$MCP_URL" --arg key "${API_KEY:-}" \
-          '.mcpServers |= (. // {}) | .mcpServers["heurist-finance"] = {"type":"http","url":$url,"headers":{"Authorization":("Bearer " + $key)}}' \
-          "$CC_MCP_JSON" > "$tmp" && mv "$tmp" "$CC_MCP_JSON"
+# Inject MCP config (only if we have an API key)
+if [ "$API_KEY_OK" = "true" ]; then
+  case "$DETECTED_AGENT" in
+    claude-code)
+      if [ -f "${CC_MCP_JSON}" ] && ($HAS_JQ && jq -e '.mcpServers["heurist-finance"]' "$CC_MCP_JSON" &>/dev/null); then
+        MCP_CONFIGURED=true
       else
-        python3 - <<PYEOF
+        if [ ! -f "$CC_MCP_JSON" ]; then
+          echo '{}' > "$CC_MCP_JSON"
+        fi
+        if $HAS_JQ; then
+          tmp="$(mktemp)"
+          jq --arg url "$MCP_URL" --arg key "${API_KEY}" \
+            '.mcpServers |= (. // {}) | .mcpServers["heurist-finance"] = {"type":"http","url":$url,"headers":{"Authorization":("Bearer " + $key)}}' \
+            "$CC_MCP_JSON" > "$tmp" && mv "$tmp" "$CC_MCP_JSON"
+          MCP_CONFIGURED=true
+        else
+          python3 - <<PYEOF && MCP_CONFIGURED=true
 import json
 with open('${CC_MCP_JSON}') as f:
     data = json.load(f)
 data.setdefault('mcpServers', {})['heurist-finance'] = {
     'type': 'http',
     'url': '${MCP_URL}',
-    'headers': {'Authorization': 'Bearer ${API_KEY:-}'}
+    'headers': {'Authorization': 'Bearer ${API_KEY}'}
 }
 with open('${CC_MCP_JSON}', 'w') as f:
     json.dump(data, f, indent=2)
 PYEOF
+        fi
       fi
-      ok "Added heurist-finance to ${CC_MCP_JSON} (Claude Code)"
-    fi
-    ;;
-  opencode)
-    if [ -f "${OC_CONFIG_JSON}" ] && grep -q 'heurist-finance' "$OC_CONFIG_JSON" 2>/dev/null; then
-      ok "heurist-finance already configured in ${OC_CONFIG_JSON}"
-    else
-      info "Configuring ${OC_CONFIG_JSON} for OpenCode"
-      mkdir -p "$(dirname "${OC_CONFIG_JSON}")"
-      if [ ! -f "$OC_CONFIG_JSON" ]; then
-        echo '{}' > "$OC_CONFIG_JSON"
-      fi
-      if $HAS_JQ; then
-        tmp="$(mktemp)"
-        jq --arg url "$MCP_URL" --arg key "${API_KEY:-}" \
-          '.mcp |= (. // {}) | .mcp["heurist-finance"] = {"type":"remote","url":$url,"headers":{"Authorization":("Bearer " + $key)}}' \
-          "$OC_CONFIG_JSON" > "$tmp" && mv "$tmp" "$OC_CONFIG_JSON"
+      ;;
+    opencode)
+      if [ -f "${OC_CONFIG_JSON}" ] && grep -q 'heurist-finance' "$OC_CONFIG_JSON" 2>/dev/null; then
+        MCP_CONFIGURED=true
       else
-        python3 - <<PYEOF
+        mkdir -p "$(dirname "${OC_CONFIG_JSON}")"
+        if [ ! -f "$OC_CONFIG_JSON" ]; then
+          echo '{}' > "$OC_CONFIG_JSON"
+        fi
+        if $HAS_JQ; then
+          tmp="$(mktemp)"
+          jq --arg url "$MCP_URL" --arg key "${API_KEY}" \
+            '.mcp |= (. // {}) | .mcp["heurist-finance"] = {"type":"remote","url":$url,"headers":{"Authorization":("Bearer " + $key)}}' \
+            "$OC_CONFIG_JSON" > "$tmp" && mv "$tmp" "$OC_CONFIG_JSON"
+          MCP_CONFIGURED=true
+        else
+          python3 - <<PYEOF && MCP_CONFIGURED=true
 import json
 with open('${OC_CONFIG_JSON}') as f:
     data = json.load(f)
 data.setdefault('mcp', {})['heurist-finance'] = {
     'type': 'remote',
     'url': '${MCP_URL}',
-    'headers': {'Authorization': 'Bearer ${API_KEY:-}'}
+    'headers': {'Authorization': 'Bearer ${API_KEY}'}
 }
 with open('${OC_CONFIG_JSON}', 'w') as f:
     json.dump(data, f, indent=2)
 PYEOF
+        fi
       fi
-      ok "Added heurist-finance to ${OC_CONFIG_JSON}"
-    fi
-    ;;
-  codex)
-    CODEX_TOML="${HOME}/.codex/config.toml"
-    if [ -f "$CODEX_TOML" ] && grep -q 'heurist-finance' "$CODEX_TOML" 2>/dev/null; then
-      ok "heurist-finance already configured in ${CODEX_TOML}"
-    else
-      info "Configuring ${CODEX_TOML} for Codex CLI"
-      mkdir -p "$(dirname "${CODEX_TOML}")"
-      if [ ! -f "$CODEX_TOML" ]; then
-        echo "" > "$CODEX_TOML"
-      fi
-      cat >> "$CODEX_TOML" <<TOML
+      ;;
+    codex)
+      CODEX_TOML="${HOME}/.codex/config.toml"
+      if [ -f "$CODEX_TOML" ] && grep -q 'heurist-finance' "$CODEX_TOML" 2>/dev/null; then
+        MCP_CONFIGURED=true
+      else
+        mkdir -p "$(dirname "${CODEX_TOML}")"
+        if [ ! -f "$CODEX_TOML" ]; then
+          echo "" > "$CODEX_TOML"
+        fi
+        cat >> "$CODEX_TOML" <<TOML
 
 [mcp_servers.heurist-finance]
 url = "${MCP_URL}"
 bearer_token_env_var = "HEURIST_API_KEY"
 TOML
-      ok "Added heurist-finance to ${CODEX_TOML}"
-      if [ -n "${API_KEY:-}" ]; then
-        info "Codex reads auth from HEURIST_API_KEY in the agent environment"
+        MCP_CONFIGURED=true
       fi
-    fi
-    ;;
-  unknown)
-    warn "Could not detect agent. Attempting Claude Code config as default."
-    info "Configuring ${CC_MCP_JSON} (Claude Code default)"
-    if [ ! -f "$CC_MCP_JSON" ]; then
-      echo '{}' > "$CC_MCP_JSON"
-    fi
-    if $HAS_JQ; then
-      tmp="$(mktemp)"
-      jq --arg url "$MCP_URL" --arg key "${API_KEY:-}" \
-        '.mcpServers |= (. // {}) | .mcpServers["heurist-finance"] = {"type":"http","url":$url,"headers":{"Authorization":("Bearer " + $key)}}' \
-        "$CC_MCP_JSON" > "$tmp" && mv "$tmp" "$CC_MCP_JSON"
-    else
-      python3 - <<PYEOF
+      ;;
+    unknown)
+      if [ ! -f "$CC_MCP_JSON" ]; then
+        echo '{}' > "$CC_MCP_JSON"
+      fi
+      if $HAS_JQ; then
+        tmp="$(mktemp)"
+        jq --arg url "$MCP_URL" --arg key "${API_KEY}" \
+          '.mcpServers |= (. // {}) | .mcpServers["heurist-finance"] = {"type":"http","url":$url,"headers":{"Authorization":("Bearer " + $key)}}' \
+          "$CC_MCP_JSON" > "$tmp" && mv "$tmp" "$CC_MCP_JSON"
+        MCP_CONFIGURED=true
+      else
+        python3 - <<PYEOF && MCP_CONFIGURED=true
 import json
 with open('${CC_MCP_JSON}') as f:
     data = json.load(f)
 data.setdefault('mcpServers', {})['heurist-finance'] = {
     'type': 'http',
     'url': '${MCP_URL}',
-    'headers': {'Authorization': 'Bearer ${API_KEY:-}'}
+    'headers': {'Authorization': 'Bearer ${API_KEY}'}
 }
 with open('${CC_MCP_JSON}', 'w') as f:
     json.dump(data, f, indent=2)
 PYEOF
-    fi
-    ok "Added heurist-finance to ${CC_MCP_JSON} (default)"
-    warn "If using OpenCode or Codex, configure manually."
-    ;;
-esac
+      fi
+      ;;
+  esac
 
-# Save API key to config.yaml if we got one and it's not already there
-if [ -n "${API_KEY:-}" ]; then
+  # Save API key to config.yaml if not already there
   CONFIG_FILE="${HEURIST_DIR}/config.yaml"
-  if [ -f "$CONFIG_FILE" ] && grep -qE '^api_key:' "$CONFIG_FILE" 2>/dev/null; then
-    : # already present
-  elif [ -f "$CONFIG_FILE" ]; then
+  if [ -f "$CONFIG_FILE" ] && ! grep -qE '^api_key:' "$CONFIG_FILE" 2>/dev/null; then
     echo "api_key: ${API_KEY}" >> "$CONFIG_FILE"
   fi
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Create ~/.heurist config directory
+# 4. Create ~/.heurist config directory + default config
 # ---------------------------------------------------------------------------
-step 4 "Config directory"
-
-if mkdir -p "${HEURIST_DIR}"; then
-  ok "Config directory: ${HEURIST_DIR}"
-else
-  fail "Could not create ${HEURIST_DIR}"
-  ERRORS=$((ERRORS + 1))
-fi
-
-# ---------------------------------------------------------------------------
-# 5. Create default config if missing
-# ---------------------------------------------------------------------------
-step 5 "Writing config"
+mkdir -p "${HEURIST_DIR}" 2>/dev/null || ERRORS+=("config_dir_failed")
 
 CONFIG_FILE="${HEURIST_DIR}/config.yaml"
-
-if [ -f "${CONFIG_FILE}" ]; then
-  ok "Config already exists: ${CONFIG_FILE}"
-else
+if [ ! -f "${CONFIG_FILE}" ]; then
   cat > "${CONFIG_FILE}" <<YAML
 # Heurist Finance configuration
 theme: heurist
 auto_update_check: true
 first_run: true
 YAML
-  # Persist API key if available
   if [ -n "${API_KEY:-}" ]; then
     echo "api_key: ${API_KEY}" >> "${CONFIG_FILE}"
   fi
-  ok "Created default config: ${CONFIG_FILE}"
 fi
 
 # ---------------------------------------------------------------------------
-# 6. Register `hf` command
+# 5. Register `hf` command
 # ---------------------------------------------------------------------------
-step 6 "Shell command"
-
 LOCAL_BIN="${HOME}/.local/bin"
 HF_LINK="${LOCAL_BIN}/hf"
 HF_TARGET="${SKILL_DIR}/bin/hf"
 
 if [ -L "$HF_LINK" ] && [ "$(readlink "$HF_LINK")" = "$HF_TARGET" ]; then
-  ok "hf command already registered"
-else
-  if mkdir -p "${LOCAL_BIN}" && ln -sf "${HF_TARGET}" "${HF_LINK}"; then
-    ok "hf command installed → ${HF_LINK}"
-    if ! echo "$PATH" | tr ':' '\n' | grep -qx "${LOCAL_BIN}"; then
-      warn "~/.local/bin is not in your PATH"
-      info "Add to your shell profile: export PATH=\"\${HOME}/.local/bin:\${PATH}\""
-    fi
-  else
-    warn "Could not create symlink ${HF_LINK} → ${HF_TARGET}"
-    warn "Run the TUI manually: ${HF_TARGET}"
-  fi
+  HF_COMMAND=true
+elif mkdir -p "${LOCAL_BIN}" 2>/dev/null && ln -sf "${HF_TARGET}" "${HF_LINK}" 2>/dev/null; then
+  HF_COMMAND=true
 fi
 
 # ---------------------------------------------------------------------------
-# 7. Create reports directory
+# 6. Create reports directory
 # ---------------------------------------------------------------------------
-step 7 "Reports directory"
-
-if mkdir -p "${REPORTS_DIR}"; then
-  ok "Reports directory: ${REPORTS_DIR}"
-else
-  fail "Could not create ${REPORTS_DIR}"
-  ERRORS=$((ERRORS + 1))
-fi
+mkdir -p "${REPORTS_DIR}" 2>/dev/null || ERRORS+=("reports_dir_failed")
 
 # ---------------------------------------------------------------------------
-# 8. Verify MCP connectivity
+# 7. Verify MCP connectivity
 # ---------------------------------------------------------------------------
-step 8 "MCP connectivity"
-
-if ! command -v curl &>/dev/null; then
-  warn "curl not found — skipping connectivity check."
-else
-  info "Probing endpoint: ${MCP_URL}"
+if command -v curl &>/dev/null; then
   HTTP_STATUS="$(curl -s -o /dev/null -w "%{http_code}" \
     --max-time 8 \
     -X POST \
@@ -406,50 +285,33 @@ else
     "${MCP_URL}" 2>/dev/null || echo "000")"
 
   if [[ "$HTTP_STATUS" =~ ^2 ]]; then
-    ok "MCP endpoint reachable (HTTP ${HTTP_STATUS})"
-  elif [ "$HTTP_STATUS" = "000" ]; then
-    fail "MCP endpoint unreachable (connection error or timeout)"
-    warn "Check your network. URL: ${MCP_URL}"
-    ERRORS=$((ERRORS + 1))
+    MCP_REACHABLE=true
   else
-    warn "MCP endpoint returned HTTP ${HTTP_STATUS} — may still be functional"
-    warn "URL: ${MCP_URL}"
+    ERRORS+=("mcp_unreachable")
   fi
 fi
 
 # ---------------------------------------------------------------------------
-# Summary
+# Output JSON
 # ---------------------------------------------------------------------------
-printf "\n${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
-printf "${BOLD}  Heurist Finance — Setup Summary${RESET}\n"
-printf "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
-printf "  Skill dir  : %s\n"   "${SKILL_DIR}"
-printf "  Config     : %s\n"   "${HEURIST_DIR}/config.yaml"
-printf "  Reports    : %s\n"   "${REPORTS_DIR}"
-printf "  Agent      : %s\n"   "${DETECTED_AGENT}"
-printf "  MCP URL    : %s\n"   "${MCP_URL}"
-
-case "$DETECTED_AGENT" in
-  claude-code) printf "  MCP config : %s\n" "${CC_MCP_JSON}" ;;
-  opencode)    printf "  MCP config : %s\n" "${OC_CONFIG_JSON}" ;;
-  codex)       printf "  MCP config : %s\n" "${CODEX_DIR}/config.toml" ;;
-  *)           printf "  MCP config : %s (default)\n" "${CC_MCP_JSON}" ;;
-esac
-
-if [ "$ERRORS" -eq 0 ]; then
-  printf "\n${GREEN}${BOLD}  All checks passed. Heurist Finance is ready.${RESET}\n"
-  if [ "$DETECTED_AGENT" != "codex" ]; then
-    printf "${YELLOW}  Restart your agent if you just added the MCP config.${RESET}\n"
-  fi
-  # tmux hyperlink tip
-  if [ -n "${TMUX:-}" ]; then
-    printf "\n${DIM}  tmux tip: for clickable news links, add to tmux.conf:${RESET}\n"
-    printf "${DIM}  set -ga terminal-features \",xterm*:hyperlinks\"${RESET}\n"
-    printf "${DIM}  then start a new tmux session.${RESET}\n"
-  fi
-  printf "\n"
-  exit 0
+if [ ${#ERRORS[@]} -eq 0 ]; then
+  STATUS="ok"
 else
-  printf "\n${RED}${BOLD}  Setup completed with ${ERRORS} error(s). Review output above.${RESET}\n\n"
-  exit 1
+  STATUS="error"
 fi
+
+# Build errors JSON array
+ERR_JSON="[]"
+if [ ${#ERRORS[@]} -gt 0 ]; then
+  ERR_JSON="["
+  for i in "${!ERRORS[@]}"; do
+    [ "$i" -gt 0 ] && ERR_JSON+=","
+    ERR_JSON+="\"${ERRORS[$i]}\""
+  done
+  ERR_JSON+="]"
+fi
+
+printf '{"status":"%s","errors":%s,"agent":"%s","api_key":%s,"deps_ok":%s,"mcp_configured":%s,"hf_command":%s,"mcp_reachable":%s}\n' \
+  "$STATUS" "$ERR_JSON" "$DETECTED_AGENT" "$API_KEY_OK" "$DEPS_OK" "$MCP_CONFIGURED" "$HF_COMMAND" "$MCP_REACHABLE"
+
+exit 0
