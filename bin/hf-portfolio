@@ -1,0 +1,6 @@
+#!/bin/bash
+# Portfolio CLI — broker connection and portfolio data.
+# Delegates to lib/portfolio-cli.js
+
+SKILL_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && cd .. && pwd)"
+exec node "$SKILL_DIR/lib/portfolio-cli.js" "$@"

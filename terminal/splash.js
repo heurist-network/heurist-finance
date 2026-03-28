@@ -31,6 +31,7 @@ export const DESK = [
   ['/options',     'chains, OI skew, positioning — where smart money leans'],
   ['/futures',     'commodities, rates futures — the cross-asset tape'],
   ['/watch',       'watchlist · what moved · conviction logged'],
+  ['/portfolio',   'your holdings · allocation · concentration risk'],
 ];
 
 export const MCP_AGENTS = ['yahoo', 'fred', 'sec', 'exa'];

@@ -11,7 +11,9 @@
         "test:update": "vitest run --update"
     },
     "dependencies": {
-        "esbuild": "^0.27.4"
+        "esbuild": "^0.27.4",
+        "fast-xml-parser": "^5.5.9",
+        "futu-sdk": "^0.2.6"
     },
     "devDependencies": {
         "vitest": "^3.0.0"

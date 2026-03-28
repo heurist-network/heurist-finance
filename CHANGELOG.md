@@ -2,6 +2,41 @@
 
 All notable changes to Heurist Finance are documented here.
 
+## [0.11.0-pre] - 2026-03-28
+
+### Added
+- **Portfolio integration**: read-only brokerage dashboard with two providers.
+  - **IBKR** (Flex Query): pure HTTP, token + query ID, end-of-day data.
+  - **Moomoo** (OpenD): auto-detect desktop app, real-time positions.
+- **Portfolio CLI** (`hf-portfolio`): connect, disconnect, test, probe, status, brokers.
+- **Auth storage**: per-broker tokens at `~/.heurist/auth/` with 0600 permissions.
+- **Agent skill**: `skills/portfolio/SKILL.md` routes broker setup and renders portfolio panels.
+
+### Engineering
+- **XML parsing**: replaced regex XML parsing in IBKR provider with `fast-xml-parser`.
+- **HTTP timeout**: 30s timeout on all IBKR Flex Query requests.
+- **Error handling**: Moomoo provider accumulates errors into warnings array instead of silent catch blocks.
+- **NaN guard**: `Number(x) || 0` pattern in all parseFloat calls across normalizers.
+- **Provider cleanup**: all providers call `super.disconnect()` instead of manually setting `_connected = false`.
+- **setup-opend.sh**: automated OpenD install and config script for Moomoo setup.
+- **Tests**: unit tests covering base normalizers, IBKR XML parsing, CLI integration. 826 total passing.
+
+## [0.10.4] - 2026-03-27
+
+### Changed
+- **Onboarding**: improved first-run experience with clearer setup flow.
+- **SETUP.md**: new reference doc consolidating all installation and configuration instructions.
+
+## [0.10.3] - 2026-03-27
+
+### Fixed
+- **check-update.sh**: removed version cache — always fetches fresh from remote registry. No more stale "up to date" when a new version is available.
+
+## [0.10.2] - 2026-03-27
+
+### Fixed
+- **SKILL.md consistency**: use `HEURIST_API_KEY` everywhere (was mixed), placeholder model-id, "Wall Street expert" wording alignment, drop `tools.total` from state protocol, correct tool count to 28.
+
 ## [0.10.1] - 2026-03-27
 
 ### Fixed

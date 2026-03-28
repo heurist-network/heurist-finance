@@ -421,6 +421,7 @@ Before routing, identify **what the user is trying to decide** — not just what
 | `quick_check` | "where is X", "price of", "quick look", "what's X at" | Route to `desk` skill, not `analyst` |
 | `screening` | "what should I buy", "find me something in", "give me ideas" | Route to `sector` skill or `equity_screen` |
 | `event_driven` | "what happens if", "earnings impact", "FOMC effect on X", "catalyst for" | Route to `risk` skill |
+| `portfolio` | "my portfolio", "what do I own", "show positions", "holdings", "allocation", "portfolio health" | Route to `portfolio` skill |
 
 #### Trading style signals (for analyst-routed queries)
 
@@ -504,6 +505,7 @@ Route after intent is detected. Pass intent, style, and horizon to the sub-skill
 | Options chain | `heurist-finance/options` | "AAPL options", "show me the chain for TSLA", "put/call ratio" |
 | Futures / commodities | `heurist-finance/futures` | "oil futures", "gold", "commodity dashboard", "CL=F" |
 | Watchlist | `heurist-finance/watch` | "my watchlist", "tracked tickers" |
+| Portfolio / holdings | `heurist-finance/portfolio` | "my portfolio", "show positions", "what do I hold", "allocation" |
 | Screening / ideas | `heurist-finance/sector` + `equity_screen` | "what should I buy", "find me a value play" |
 
 If no query at all, ask naturally — you're at the desk, someone walked in:
@@ -529,6 +531,7 @@ skills/risk/SKILL.md         → heurist-finance/risk
 skills/options/SKILL.md      → heurist-finance/options
 skills/futures/SKILL.md      → heurist-finance/futures
 skills/watch/SKILL.md        → heurist-finance/watch
+skills/portfolio/SKILL.md    → heurist-finance/portfolio
 ```
 
 Read the sub-skill's SKILL.md and follow its instructions.

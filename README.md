@@ -8,7 +8,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Node.js-18%2B-brightgreen" alt="Node.js 18+" />
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License" />
-  <img src="https://img.shields.io/badge/version-0.9.12-C0FF00" alt="v0.9.12" />
+  <img src="https://img.shields.io/badge/version-0.10.4-C0FF00" alt="v0.10.4" />
 </p>
 
 <p align="center">
@@ -79,6 +79,23 @@ Every seat takes a position.
 | `/options` | Options Strategist | Chains, OI skew, positioning - where smart money leans |
 | `/futures` | Commodities Strategist | Futures, commodities, rates - the cross-asset tape |
 | `/watch` | Watchlist Monitor | Your names. Tracked. Alerted. Conviction logged |
+| `/portfolio` | Portfolio Dashboard | Your holdings, allocation, and concentration risk |
+
+### Portfolio
+
+Connect your brokerage and see your real positions alongside research.
+
+Supported brokers:
+- **IBKR** (Interactive Brokers) — Flex Query Web Service, token + query ID, end-of-day data
+- **Moomoo** (OpenD) — auto-detects the desktop app or installs OpenD, real-time positions
+
+```bash
+hf-portfolio connect ibkr <TOKEN> <QUERY_ID>
+hf-portfolio connect moomoo
+hf-portfolio status
+```
+
+All credentials stay on your machine at `~/.heurist/auth/`. Read-only. No orders.
 
 Most AI finance tools hedge everything. *"The stock may be experiencing
 some downward pressure."* This desk doesn't do that. It says *"falling knife
@@ -180,24 +197,23 @@ and lives inside your agent stack.
 ## How It Works
 
 ```
-                        ┌─────────────────────────────────────────────┐
-                        │            Heurist Mesh (MCP)               │
-                        │                                             │
-  ┌──────────┐          │   ┌──────────┐  ┌──────────┐  ┌──────────┐  │
-  │          │  query   │   │  Yahoo   │  │   FRED   │  │   SEC    │  │
-  │  Claude  │────────▶ │   │ Finance  │  │  Macro   │  │  EDGAR   │  │
-  │  Code    │          │   └────┬─────┘  └────┬─────┘  └────┬─────┘  │
-  │  Codex   │          │        │             │             │        │ 
-  │ OpenCode │  panels  │   ┌────┴─────────────┴─────────────┴────┐   │
-  │          │◀──────── │   │         12-15 tools in parallel     │   │
-  └──────────┘  verdict │   └─────────────────────────────────────┘   │
-       │                │                                             │
-       ▼                │   ┌──────────┐                              │
-  ┌──────────┐          │   │   Exa    │                              │
-  │   TUI    │          │   │  Search  │                              │
-  │ 20 panel │          │   └──────────┘                              │
-  │   types  │          └─────────────────────────────────────────────┘
-  └──────────┘
+  ┌───────────────────┐         ┌─────────────────────────────────────────────┐
+  │       Agent       │         │            Heurist Mesh (MCP)               │
+  │                   │         │                                             │
+  │  Claude Code      │  query  │   ┌──────────┐  ┌──────────┐  ┌──────────┐  │
+  │  Codex CLI   ─────┼────────▶│   │  Yahoo   │  │   FRED   │  │   SEC    │  │
+  │  OpenCode         │         │   │ Finance  │  │  Macro   │  │  EDGAR   │  │
+  │                   │◀────────┤   └────┬─────┘  └────┬─────┘  └────┬─────┘  │
+  └───────────────────┘ verdict │        │             │             │        │
+                                │   ┌────┴─────────────┴─────────────┴────┐   │
+                                │   │         28 tools in parallel        │   │
+                                │   └─────────────────────────────────────┘   │
+                                │                                             │
+                                │   ┌──────────┐                              │
+                                │   │   Exa    │                              │
+                                │   │  Search  │                              │
+                                │   └──────────┘                              │
+                                └─────────────────────────────────────────────┘
 ```
 
 Heurist Finance is an **agent skill**. One install, any agent. It connects your

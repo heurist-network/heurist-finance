@@ -3747,7 +3747,8 @@ var DESK = [
   ["/risk", "event impact \xB7 catalyst timing \xB7 what could go wrong"],
   ["/options", "chains, OI skew, positioning \u2014 where smart money leans"],
   ["/futures", "commodities, rates futures \u2014 the cross-asset tape"],
-  ["/watch", "watchlist \xB7 what moved \xB7 conviction logged"]
+  ["/watch", "watchlist \xB7 what moved \xB7 conviction logged"],
+  ["/portfolio", "your holdings \xB7 allocation \xB7 concentration risk"]
 ];
 var MCP_AGENTS = ["yahoo", "fred", "sec", "exa"];
 function renderSplash(msg, width, pulseFrame = 0, maxRows = 999) {
