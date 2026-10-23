@@ -1,151 +1,180 @@
-# Heurist Finance
+<h1 align="center">Heurist Finance</h1>
 
-Investment research with AI agents, kept in a git repo. Open it in Claude Code, Codex or
-Cursor and ask a market question. The agent pulls prices, options, SEC filings, FRED series
-and the web through [Heurist Mesh](https://heurist.ai), and answers with a call, the evidence
-behind it and what would prove it wrong. When you decide to trade, it writes a plan with price
-levels, and a monitor messages you on Telegram when a level is crossed.
+<p align="center">
+An AI research desk for your own investing, kept in a git repo you own.<br>
+Ask market questions from your laptop or your phone. Get tables, charts and a straight answer.<br>
+Write trading plans, and get a Telegram message when one of your price levels is hit.
+</p>
 
-For a hosted version, [finance.heurist.ai](https://finance.heurist.ai) is an AI financial
-workbench where you read the market feed and research with AI in the browser.
+<p align="center">
+<a href="#get-started">Get started</a> ·
+<a href="#what-you-can-ask">What you can ask</a> ·
+<a href="#plans-that-watch-the-market">Plans and alerts</a> ·
+<a href="#26-skills">Skills</a> ·
+<a href="https://finance.heurist.ai">finance.heurist.ai</a>
+</p>
 
-## Quick start
+![A research session in the Claude app with Telegram alerts on a phone](docs/images/hero.png)
 
-You need Python 3.11+, [uv](https://docs.astral.sh/uv/) and a coding agent.
+Open this repo in Claude Code, Codex or Cursor and ask a question the way you'd ask an analyst.
+The agent pulls prices, options, fundamentals, SEC filings, FRED series and the web through
+[Heurist Mesh](https://heurist.ai), does the arithmetic, and comes back with tables, charts and
+a view it is willing to be wrong about. Your profile, plans, trades and research notes are plain
+Markdown files in the repo, so the next session, or a different agent, picks up where the last
+one stopped.
+
+If you'd rather use a hosted app, [finance.heurist.ai](https://finance.heurist.ai) is an AI
+financial workbench where you read the market feed and research with AI in the browser.
+
+<sub>The screens on this page are mockups. They use real closes through Oct 22, 2026, real SEC
+filings and FRED data; the wording of the replies is illustrative.</sub>
+
+## What you can ask
+
+Anything you'd hand to an analyst with a terminal and an afternoon:
+
+- *Map the AI data-center supply chain, from the hyperscalers down to power. Which layers carried this year, and what is priced for the most?*
+- *Every time VIX closed above 30 since 2020, how hard did the megacaps fall, and where were they three months later?*
+- *Chart big-tech capex by quarter, from the filings.*
+- *Is this rally narrow? Compare equal-weight and cap-weight S&P 500 since 2023.*
+- *Preview Micron's earnings: what does the options market imply, and what would move the stock 10%?*
+- *Fact-check this thread: (paste it)*
+- *What does a 100bp jump in the 10-year do to my portfolio?*
+
+![A table comparing megacap drawdowns in every VIX spike since 2020](docs/images/table.png)
+
+The agent is told to take every number from a tool call made in that session, never from
+memory. It works out its own estimate before it reads consensus, counts independent sources rather than
+repeated ones, and ends with a call, what would prove it wrong, and a time horizon.
+
+## Charts and tables
+
+When a picture answers the question faster, the agent writes a short plotting script, runs it
+and shows you the chart in the conversation. In the cloud app the images sit next to the chat
+under Outputs.
+
+![Hyperscaler capex from SEC filings, in a session](docs/images/capex.png)
+
+<table>
+<tr>
+<td width="54%"><img src="docs/images/layers.png" alt="AI layer baskets indexed to the 2025 close"></td>
+<td width="46%"><img src="docs/images/fromhigh.png" alt="Distance from 52-week high for 25 AI names"></td>
+</tr>
+</table>
+
+## Plans that watch the market
+
+Say what you want to do and the `trading-plan` skill turns it into a one-page plan: thesis,
+scenarios with odds, size, what would make you exit, and price levels. The levels go into the
+file's frontmatter, where a small monitor can read them.
+
+![A QQQ ladder plan with entry levels drawn on the chart](docs/images/plan.png)
+
+A level can watch more than the price: the daily close, the 200-day average, a day's percentage
+move, an index such as `^VIX`, or any FRED series, such as high-yield credit spreads. For
+conditions that need reading rather than a number ("tell me when the 8-K with the merger vote
+date is filed"), you write a watch in plain English and an agent checks it every morning.
+
+Three scripts do the watching, run from cron on any always-on machine:
+
+| Script | What it does |
+|---|---|
+| `monitor.py` | Checks every active plan, every 15 minutes in market hours, and messages you when a level fires |
+| `watch.py` | Gives each plain-English watch to an agent, which reports a finding or stays quiet |
+| `brief.py` | A pre-open and after-close brief on what touched your positions and plans |
+
+## On your phone
+
+Claude Code sessions can run in the cloud, so you can start one from the Claude app on your
+phone, ask a question on the train, and pick the same session up on your laptop later.
+Alerts and briefs go to a Telegram bot you create.
+
+![Three phones: a cloud session, Telegram alerts, and a chart in the chat](docs/images/phones.png)
+
+Telegram is the default, not a requirement. Every message goes through one function in
+[`src/notify.py`](src/notify.py), so sending to Slack, Discord, email or your own webhook is a
+small change you can ask the agent to make. What fires, and when, is defined in your own plan
+and watch files.
+
+## It remembers you
+
+- **`profile.md`** holds your constraints, your risk tolerance, what never to pitch, and the
+  mistakes you tend to repeat. Ask the agent to interview you and it fills this in.
+- **`trading/trades.md`** has one row per fill, each tied to the plan level it executed or
+  marked `unplanned`. A screenshot of a broker receipt is enough to log one.
+- **`trade-postmortem`** grades closed trades on process, not P&L, and adds a lesson to your
+  profile only when three or more trades show the same pattern.
+- **`context/`** keeps the daily brief's notes (prices, stories with links, open questions), so a
+  new session starts from what was known this morning.
+
+The profile shapes the analysis without steering it. The agent is told to bring up the strongest
+ideas outside your current book, and to say so once, with evidence, when it thinks a past
+decision was wrong.
+
+## 26 skills
+
+The agent picks a skill from your question, or you name one with its phrase.
+
+| Area | Skills (phrase) |
+|---|---|
+| Research | [research](.claude/skills/hf-research/SKILL.md) · [earnings-preview](.claude/skills/earnings-preview/SKILL.md) · [audit](.claude/skills/thesis-audit/SKILL.md) · [valuation](.claude/skills/valuation-expectations/SKILL.md) · [forensics](.claude/skills/fundamental-forensics/SKILL.md) · [screener](.claude/skills/stock-screener/SKILL.md) |
+| Markets | [market](.claude/skills/market-health/SKILL.md) · [macro](.claude/skills/macro-regime/SKILL.md) · [sector](.claude/skills/sector-rotation/SKILL.md) · [sentiment](.claude/skills/sentiment-positioning/SKILL.md) · [momentum](.claude/skills/momentum-trend/SKILL.md) · [technicals](.claude/skills/technical-evidence/SKILL.md) |
+| Trading | [trading](.claude/skills/trading-plan/SKILL.md) · [timing](.claude/skills/entry-exit-timing/SKILL.md) · [sizing](.claude/skills/position-sizing/SKILL.md) · [options](.claude/skills/options-strategist/SKILL.md) · [earnings](.claude/skills/earnings-play/SKILL.md) · [postmortem](.claude/skills/trade-postmortem/SKILL.md) |
+| Portfolio | [portfolio](.claude/skills/portfolio-review/SKILL.md) · [pairs](.claude/skills/pairs-relative-value/SKILL.md) · [dividend](.claude/skills/dividend-income/SKILL.md) |
+| Special situations | [event](.claude/skills/event-driven/SKILL.md) · [short](.claude/skills/short-thesis/SKILL.md) · [smallcap](.claude/skills/small-cap-scout/SKILL.md) · [commodity](.claude/skills/commodity-curve/SKILL.md) · [bond](.claude/skills/bond-data/SKILL.md) |
+
+For example: `use earnings-preview skill: NVDA`, or `use audit skill:` followed by a pasted thread.
+
+## Get started
+
+You need two API keys: [Heurist](https://heurist.ai/credits) for Mesh (Yahoo Finance, FRED, SEC
+EDGAR and web search; or [apply with a referral code](https://dev-api-form.heurist.ai/)) and [EODHD](https://eodhd.com) for daily prices.
+
+**1. Make a private copy.** Your plans and fills get committed, so keep them out of a public repo
+(a GitHub fork of a public repo can't be made private). Create an empty private repository,
+then:
 
 ```bash
-git clone https://github.com/heurist-network/heurist-finance
-cd heurist-finance
+git clone https://github.com/heurist-network/heurist-finance my-finance
+cd my-finance
+git remote set-url origin git@github.com:<you>/my-finance.git
+git push -u origin main
+```
+
+**2a. In the cloud.** Open [claude.ai/code](https://claude.ai/code), choose your private repo and
+create an environment for it:
+
+- Add `HEURIST_API_KEY` and `EODHD_API_KEY` as environment variables.
+- Set the setup script to `uv sync`.
+- Allow full network access, because research reads filings and pages from many sites.
+
+Sessions you start on the web or in the Claude app then run against your repo.
+
+**2b. On your machine.** With Python 3.11+, [uv](https://docs.astral.sh/uv/) and a coding agent:
+
+```bash
 cp .env.example .env        # add HEURIST_API_KEY and EODHD_API_KEY
 uv sync
 uv run python scripts/hf_tool.py quote NVDA QQQ
 claude                      # or codex, cursor
 ```
 
-Get a Heurist API key at [heurist.ai/credits](https://heurist.ai/credits), or with a referral
-code at [dev-api-form.heurist.ai](https://dev-api-form.heurist.ai/). The EODHD key
-([eodhd.com](https://eodhd.com)) covers daily bars and quotes.
+**3. Introduce yourself.** Start with `Interview me and fill in profile.md`, then ask your first
+question.
 
-Then talk to the agent:
+**Alerts and briefs (optional).** Create a Telegram bot with `@BotFather` and put
+`TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env` on an always-on machine. The brief and
+watches also need `ANTHROPIC_API_KEY`. [AGENTS.md](AGENTS.md#daily-brief) has the crontab.
 
-```
-Interview me and fill in profile.md.
-use research skill: are semiconductor earnings revisions still rising?
-use trading skill: plan an entry in AMD after its earnings.
-use audit skill: <paste a thread or article>
-```
+## Under the hood
 
-Your profile, plans and fills end up in this repo, and the scripts commit and push them. Keep
-your copy in a new private repository (GitHub forks of a public repo can't be private):
+[AGENTS.md](AGENTS.md) is the manual the agents read: the repo layout, the plan format, the
+market data CLI, and the rules every answer follows. Read it if you want to change how any of
+this works. The agents behind the brief and the watches run unattended, so they can read only
+inside the repo, can't read your keys, and can't edit files.
 
-```bash
-git remote set-url origin git@github.com:<you>/<private-repo>.git
-git push -u origin main
-```
-
-## Skills
-
-The skills are in `.claude/skills/` (linked from `.agents/skills/` for other agents). The agent
-picks one from the question, or you name it with the phrase in the second column. All of them
-follow [`_shared/analyst-core.md`](.claude/skills/_shared/analyst-core.md): every number comes
-from a tool call, the agent estimates before it reads consensus, and each answer ends with a
-call, a falsifier and a horizon.
-
-| Skill | Phrase | Use for |
-|---|---|---|
-| [hf-research](.claude/skills/hf-research/SKILL.md) | `use research skill` | Parallel research across prices, filings, macro and the web, then a skeptic pass |
-| [trading-plan](.claude/skills/trading-plan/SKILL.md) | `use trading skill` | A written plan: scenarios, size, invalidation list, monitor levels |
-| [earnings-preview](.claude/skills/earnings-preview/SKILL.md) | `use earnings-preview skill` | Research lanes, bull/bear debate, fact-check and a verdict committed before the print |
-| [earnings-play](.claude/skills/earnings-play/SKILL.md) | `use earnings skill` | Implied vs realized move, vol crush, post-earnings drift |
-| [entry-exit-timing](.claude/skills/entry-exit-timing/SKILL.md) | `use timing skill` | Limit-price ladders and stops from trend regime and σ bands |
-| [position-sizing](.claude/skills/position-sizing/SKILL.md) | `use sizing skill` | Fractional Kelly, volatility targeting, portfolio heat |
-| [portfolio-review](.claude/skills/portfolio-review/SKILL.md) | `use portfolio skill` | Correlated clusters, concentration, stress losses in dollars |
-| [market-health](.claude/skills/market-health/SKILL.md) | `use market skill` | Breadth, distribution days, volatility and credit, ending in an exposure gate |
-| [macro-regime](.claude/skills/macro-regime/SKILL.md) | `use macro skill` | Curve, credit, dollar and inflation turned into positions |
-| [sector-rotation](.claude/skills/sector-rotation/SKILL.md) | `use sector skill` | Sector relative strength and rate sensitivity |
-| [valuation-expectations](.claude/skills/valuation-expectations/SKILL.md) | `use valuation skill` | What the price already implies, against base rates |
-| [fundamental-forensics](.claude/skills/fundamental-forensics/SKILL.md) | `use forensics skill` | Accruals, cash vs earnings, restatement red flags |
-| [thesis-audit](.claude/skills/thesis-audit/SKILL.md) | `use audit skill` | Fact-checks someone else's thesis claim by claim |
-| [options-strategist](.claude/skills/options-strategist/SKILL.md) | `use options skill` | Strikes, expiry and management rules for a view |
-| [momentum-trend](.claude/skills/momentum-trend/SKILL.md) | `use momentum skill` | Momentum and trend, with crash risk |
-| [technical-evidence](.claude/skills/technical-evidence/SKILL.md) | `use technicals skill` | Chart signals ranked by statistical support |
-| [sentiment-positioning](.claude/skills/sentiment-positioning/SKILL.md) | `use sentiment skill` | Crowding, insider clusters, contrarian signals |
-| [event-driven](.claude/skills/event-driven/SKILL.md) | `use event skill` | M&A arb, spinoffs, index changes, lockups, activists |
-| [short-thesis](.claude/skills/short-thesis/SKILL.md) | `use short skill` | Short cases with catalyst and squeeze checks |
-| [small-cap-scout](.claude/skills/small-cap-scout/SKILL.md) | `use smallcap skill` | Liquidity, spread cost, pump and dilution checks |
-| [stock-screener](.claude/skills/stock-screener/SKILL.md) | `use screener skill` | Screens built around a named mispricing |
-| [pairs-relative-value](.claude/skills/pairs-relative-value/SKILL.md) | `use pairs skill` | Cointegration, half-life, entry bands |
-| [dividend-income](.claude/skills/dividend-income/SKILL.md) | `use dividend skill` | Yield traps and payout coverage |
-| [commodity-curve](.claude/skills/commodity-curve/SKILL.md) | `use commodity skill` | Futures curve, roll yield, COT positioning |
-| [bond-data](.claude/skills/bond-data/SKILL.md) | `use bond skill` | Corporate bond terms, TRACE prices, spreads |
-| [trade-postmortem](.claude/skills/trade-postmortem/SKILL.md) | `use postmortem skill` | Grades closed trades on process, not P&L |
-
-## Market data CLI
-
-Agents and subagents fetch data through one command that prints JSON:
-
-```bash
-uv run python scripts/hf_tool.py quote NVDA MU
-uv run python scripts/hf_tool.py prices QQQ --period 5y --out px.json
-uv run python scripts/hf_tool.py options NVDA --expiry 2026-12-18
-uv run python scripts/hf_tool.py fred BAMLH0A0HYM2 T10Y3M
-uv run python scripts/hf_tool.py primary NVDA
-uv run python scripts/hf_tool.py trials --nct NCT05552755
-uv run python scripts/hf_tool.py describe sec xbrl_fact_trends
-uv run python scripts/hf_tool.py call sec insider_activity query=NVDA
-```
-
-`tools` lists every Mesh tool (`yahoo`, `fred`, `sec`, `exa`) and `describe` shows a tool's
-parameters. `primary`, `document`, `trials` and `papers` save each retrieved document under
-`logs/primary-sources/` so you can see what changed between reads.
-
-## Plans and alerts
-
-A plan is a Markdown file in `trading/plans/` with its levels in the frontmatter:
-
-```yaml
----
-ticker: QQQ
-status: active
-levels:
-  - {id: add-1, when: "price <= 450", action: "buy 30% of target"}
-  - {id: stop, when: "close < sma200", action: "exit all on a Friday close"}
-  - {id: vix, ticker: "^VIX", when: "close > 30", action: "add the reserve"}
-events:
-  - {date: 2030-01-15, what: "CPI release"}
----
-```
-
-Three scripts run from cron on any always-on machine:
-
-- `scripts/monitor.py` checks every active plan, sends the alert and commits the fired level.
-- `scripts/watch.py` hands each file in `trading/watches/` to a Claude agent, for conditions
-  that need reading rather than a price, such as "the 8-K with the merger vote date is out".
-- `scripts/brief.py preopen|postclose` sends a short brief on what touched your positions and
-  writes its notes to `context/`, which every new agent session reads first.
-
-The watch and brief agents need `ANTHROPIC_API_KEY`. Without a Telegram bot token, alerts print
-to stdout. [AGENTS.md](AGENTS.md) has the full plan format and an example crontab.
-
-## Layout
-
-```
-profile.md              you: constraints, stance, lessons from past trades
-trading/plans/          one plan per file
-trading/portfolio.md    holdings and cash
-trading/trades.md       one row per fill, tied to a plan level or `unplanned`
-trading/watches/        conditions checked by an agent
-research/               notes, one topic per file
-messages/               daily briefs
-context/                the brief's notes for the next session
-.claude/skills/         skills
-scripts/, src/          CLI, monitor, watch, brief
-```
-
-## Upgrading from 0.x
-
-Up to 0.10.4 this repo was a Node terminal app (`hf`) with broker connectors. That code is in
-the git history at commit `1c77563`.
+Up to 0.10.4 this repo was a Node terminal app (`hf`). That code is in the git history at commit
+`1c77563`.
 
 ## License
 

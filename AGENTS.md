@@ -37,7 +37,7 @@ events:
 From a broker receipt: save the image under `trading/receipts/YYYY-MM-DD-<ticker>-<n>.png`, append the row to `trading/trades.md`, update `trading/portfolio.md`, commit. If the fill matches no level in an active plan, `level` is `unplanned`: record it, don't argue it.
 
 ## Monitor
-`uv run python scripts/monitor.py` checks every `status: active` plan once and exits. Run it from cron on an always-on machine, e.g. every 15 minutes during US market hours, pulling first. Notifications go to Telegram when `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are set in `.env`, otherwise to stdout. Fired levels are committed and pushed by the monitor so every agent sees them.
+`uv run python scripts/monitor.py` checks every `status: active` plan once and exits. Run it from cron on an always-on machine, e.g. every 15 minutes during US market hours, pulling first. Notifications go to Telegram when `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are set in `.env`, otherwise to stdout. Monitor, watch and brief all send through `telegram()` in `src/notify.py`; to deliver somewhere else (Slack, Discord, email, a webhook), change that one function. Fired levels are committed and pushed by the monitor so every agent sees them.
 
 ## Watches
 `uv run python scripts/watch.py` gives each `status: active` file in `trading/watches/` to a Claude agent (`claude-haiku-5-5`, same tools as the brief). The file's body is the instruction: what to check, what is already known, what counts as a finding, and which sources count. The agent answers `NOTHING` or `FOUND` plus a message; a finding goes to Telegram, the file gets `status: fired`, a `fired` timestamp and a `## Finding` section, and the change is pushed. A failed run sends a Telegram error. To re-arm a watch after a false finding, set `status: active` and update what is already known.
@@ -86,6 +86,9 @@ uv run python scripts/hf_tool.py call yahoo technical_snapshot symbol=QQQ
 Known gap: Tokyo tickers (`7203.T`) return EODHD 404 from `prices`.
 
 Corporate bonds (terms at issue, current price/yield, spreads, FINRA breadth) have no `hf_tool` command; see the `bond-data` skill.
+
+## Charts
+When a chart answers the question faster than a table, save the data with `--out logs/out/<name>.json`, write a short matplotlib script under `logs/out/`, run it with `uv run --with matplotlib python logs/out/<script>.py`, save a PNG and show it in the conversation. One y-axis per panel (index series to a common base, or use separate panels), label the series directly, and put the source and as-of date under the chart. Copy a chart into `research/` only when the note it belongs to is saved there.
 
 ## Primary evidence and news dates
 
