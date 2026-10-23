@@ -34,6 +34,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.clients import eodhd  # noqa: E402
 from src.instruments import resolver  # noqa: E402
+from src import agent  # noqa: E402
 from src.notify import telegram  # noqa: E402
 
 PLANS = ROOT / "trading" / "plans"
@@ -126,7 +127,7 @@ async def main() -> None:
         subprocess.run(["git", "add", *changed], cwd=ROOT, check=True)
         subprocess.run(["git", "commit", "-q", "-m", f"monitor: {', '.join(Path(c).stem for c in changed)}"],
                        cwd=ROOT, check=True)
-        subprocess.run(["git", "push", "-q"], cwd=ROOT, check=True)
+        agent.push()
 
 
 if __name__ == "__main__":

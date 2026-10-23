@@ -135,11 +135,15 @@ def annotate(item, *, now=None, corrections=None):
 
 def annotate_payload(payload, *, now=None):
     out = deepcopy(payload)
-    if isinstance(out, dict) and (isinstance(out.get('stories'), list) or isinstance(out.get('items'), list)):
-        key = 'stories' if 'stories' in out else 'items'
-        out[key] = [x if isinstance(x.get('temporal_context'), dict) else annotate(x, now=now) for x in out[key]]
+    if isinstance(out, list):
+        return [annotate(x, now=now) if isinstance(x, dict) and not isinstance(x.get('temporal_context'), dict) else x
+                for x in out]
+    key = next((k for k in ('stories', 'items', 'news', 'articles', 'results')
+                if isinstance(out, dict) and isinstance(out.get(k), list)), None)
+    if key:
+        out[key] = annotate_payload(out[key], now=now)
         out['timestamp_policy'] = 'Use effective_at and temporal_context for event recency. Original article dates are preserved; unverified does not mean fresh.'
-    elif isinstance(out, dict):
+    elif isinstance(out, dict) and 'themes' in out:
         # A pre-generated brief is not itself evidence of a fresh event.
         for theme in out.get('themes', []):
             if not isinstance(theme, dict):

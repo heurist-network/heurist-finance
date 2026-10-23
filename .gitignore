@@ -9,3 +9,4 @@ __pycache__/
 .claude/scheduled_tasks.lock
 logs/
 .claude-brief/
+.mcp.json

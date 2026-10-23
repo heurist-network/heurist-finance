@@ -35,8 +35,13 @@ use trading skill: plan an entry in AMD after its earnings.
 use audit skill: <paste a thread or article>
 ```
 
-Your profile, plans and fills end up in this repo. Keep your copy in a private repository
-rather than a public fork.
+Your profile, plans and fills end up in this repo, and the scripts commit and push them. Keep
+your copy in a new private repository (GitHub forks of a public repo can't be private):
+
+```bash
+git remote set-url origin git@github.com:<you>/<private-repo>.git
+git push -u origin main
+```
 
 ## Skills
 

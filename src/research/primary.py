@@ -8,10 +8,12 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from hashlib import sha256
 from io import BytesIO
+import ipaddress
 import json
 import os
 from pathlib import Path
 import re
+import socket
 import time
 from urllib.parse import urljoin, urlsplit
 from uuid import uuid4
@@ -101,11 +103,26 @@ def preview(record, chars=8000):
     return result
 
 
+def _public_https(request):
+    """Refuse non-HTTPS hops and hosts that resolve to private, loopback or link-local addresses."""
+    if request.url.scheme != 'https':
+        raise ValueError(f'Primary documents require HTTPS, got {request.url.scheme}://{request.url.host}')
+    try:
+        addrs = {a[4][0] for a in socket.getaddrinfo(request.url.host, None)}
+    except socket.gaierror:
+        return
+    for addr in addrs:
+        ip = ipaddress.ip_address(addr.split('%')[0])
+        if not ip.is_global:
+            raise ValueError(f'Refusing non-public address {addr} for {request.url.host}')
+
+
 class PrimaryClient:
     def __init__(self, *, store=None, client=None):
         self.store = store or SnapshotStore()
         self._last_request = 0.0
         self.client = client or httpx.Client(timeout=30, follow_redirects=True,
+            event_hooks={'request': [_public_https]},
             headers={'User-Agent': os.getenv('SEC_USER_AGENT') or os.getenv('EARNINGS_DATA_USER_AGENT') or 'heurist-finance research contact@example.com'})
 
     def get(self, url, params=None):

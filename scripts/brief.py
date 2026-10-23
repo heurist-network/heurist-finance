@@ -27,6 +27,7 @@ sys.path.insert(0, str(ROOT))
 
 from src import config  # noqa: E402,F401  loads .env
 from src.context import merge_index, parse_entries, run_section, update_latest  # noqa: E402
+from src import agent  # noqa: E402
 from src.notify import telegram  # noqa: E402
 
 MESSAGES = ROOT / "messages"
@@ -49,8 +50,8 @@ Write the user's brief. Use Read/Glob/Grep for repo files; Bash only runs hf_too
    - `call fred macro_release_calendar` for data releases in the next 5 trading days
    - WebSearch last, for anything the above left open
    Prefer the original publisher's URL as the citation.
-   Event freshness: use temporal_context and effective_at, never ingestion or article dates
-   alone. OLD EVENT means background, not today's catalyst. Mixed stories retain separate
+   Event freshness: use temporal_context and effective_at where a result carries them, and
+   check the publisher's own date otherwise; never ingestion dates alone. OLD EVENT means background, not today's catalyst. Mixed stories retain separate
    dates for old components and genuinely new developments. Unverified is not fresh.
    Before using a clinical/earnings claim, read the primary document via `document <url>`
    or `primary <ticker> --science`; use `trials --nct <id>` and `papers "candidate OR alias"`
@@ -172,12 +173,12 @@ async def run(slot: str) -> tuple[str, float, str, ClaudeAgentOptions]:
         model="claude-sonnet-5-5",
         cwd=ROOT,
         setting_sources=["project"],
-        allowed_tools=["Read", "Glob", "Grep", "WebSearch", "WebFetch",
-                       "Bash(uv run python scripts/hf_tool.py:*)"],
+        allowed_tools=agent.ALLOWED_TOOLS,
+        disallowed_tools=agent.DISALLOWED_TOOLS,
         permission_mode="default",
         max_turns=40,
         max_budget_usd=2.0,
-        env={"CLAUDE_CONFIG_DIR": str(ROOT / ".claude-brief")},
+        env=agent.ENV,
     )
     prompt = PROMPT.format(today=date.today().isoformat(), slot=slot, slot_desc=SLOTS[slot],
                            hours=HOURS[slot])
@@ -238,7 +239,7 @@ def main(slot: str) -> None:
         print("context notes failed:", e, file=sys.stderr)
     subprocess.run(["git", "add", *paths], cwd=ROOT, check=True)
     subprocess.run(["git", "commit", "-q", "-m", f"brief: {path.stem}"], cwd=ROOT, check=True)
-    subprocess.run(["git", "push", "-q"], cwd=ROOT, check=True)
+    agent.push()
     print(f"saved {path.relative_to(ROOT)} cost ${cost:.2f}")
 
 

@@ -61,18 +61,18 @@ Close the chart. Stand up. Walk. Water. Re-check on the trade's clock — in an 
 
 ## Part 2.5 — Which market am I in? (route the alarm, don't suppress it)
 
-Fear trained in one market misfires in another. A reflex learned where assets can actually die — altcoins, exchange failures — will scream *get out* in markets where dips are noise around a rising earnings stream. The reflex isn't wrong; it's answering for the wrong asset class. Before obeying the alarm, find the holding's row:
+Fear trained in one market misfires in another. A reflex learned where assets can actually die — speculative tokens, meme stocks, frauds — will scream *get out* in markets where dips are noise around a rising earnings stream. The reflex isn't wrong; it's answering for the wrong asset class. Before obeying the alarm, find the holding's row:
 
 | Regime | Can it go to ~zero? | A dip usually means | The alarm is… |
 |---|---|---|---|
-| No-earnings speculative assets (altcoins, meme names) | yes | it's dying | **usually right** — dips are information |
+| No-earnings speculative assets (speculative tokens, meme names) | yes | it's dying | **usually right** — dips are information |
 | Crowded story stocks (high multiple, leverage behind the narrative) | effectively (−70–90%, may never recover) | often information | **mostly right** — check the narrative, fast |
 | Profitable cyclicals | no, but −50–70% cyclically | the cycle may be turning | **half right** — route it to the invalidation list, not the sell button |
 | Megacap quality / broad index | no | noise around rising earnings | **false positive** — thank it and hold |
 
 Two rules of the ladder:
 
-- It's never "stocks vs crypto." It's the **floor** (are there earnings under this thing?) and the **drift** (does time work for or against the holder?). One market's survival reflex is another market's systematic sell-the-low.
+- It's never one asset class against another. It's the **floor** (are there earnings under this thing?) and the **drift** (does time work for or against the holder?). One market's survival reflex is another market's systematic sell-the-low.
 - Same reflex, inverted payoff: where assets can die, selling the panic saves you; where earnings grow, selling the panic sells the low of a thing that recovers. Know which market you're standing in **before** you obey the alarm — then run the three tests above.
 
 ---

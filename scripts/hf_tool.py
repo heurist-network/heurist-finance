@@ -28,6 +28,7 @@ import argparse
 import json
 import sys
 import math
+import os
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -64,10 +65,17 @@ def die(msg: str, code: int = 1) -> None:
     sys.exit(code)
 
 
+AGENT_OUT = ROOT / "logs" / "out"
+
+
 def emit(obj, out: str | None) -> None:
     text = json.dumps(obj, indent=2, default=str)
     if out:
-        Path(out).write_text(text)
+        path = Path(out).resolve()
+        if os.getenv("HF_AGENT") and not path.is_relative_to(AGENT_OUT):
+            die(f"--out must be under {AGENT_OUT} in agent runs")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
         print(json.dumps({"written": out, "bytes": len(text)}))
     else:
         print(text)

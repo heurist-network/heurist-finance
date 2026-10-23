@@ -7,6 +7,7 @@ known, what counts as a finding, and which sources count.
 Check whether NVIDIA has filed an 8-K with Item 2.02 (quarterly results) since the last
 known one.
 `uv run python scripts/hf_tool.py call sec filing_timeline query=NVDA 'forms=["8-K"]' limit=3 include_links=true`
-Already known: the 8-K dated YYYY-MM-DD.
+Already known: the 8-K dated YYYY-MM-DD (put the latest one here before activating, or every
+run reports it).
 A new Item 2.02 8-K is a finding: report revenue, the next-quarter guide and the URL.
 Use only sec.gov or investor.nvidia.com text.

@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from src import config  # noqa: E402,F401  loads .env
+from src import agent  # noqa: E402
 from src.notify import telegram  # noqa: E402
 
 WATCHES = ROOT / "trading" / "watches"
@@ -31,8 +32,8 @@ MODEL = "claude-haiku-5-5"
 
 PROMPT = """Today is {today}. You are checking one watch condition for the user.
 Bash only runs hf_tool.py, one plain command, no pipes.
-   Event freshness: use temporal_context and effective_at, never ingestion or article dates
-   alone. OLD EVENT means background, not today's catalyst. Mixed stories retain separate
+   Event freshness: use temporal_context and effective_at where a result carries them, and
+   check the publisher's own date otherwise; never ingestion dates alone. OLD EVENT means background, not today's catalyst. Mixed stories retain separate
    dates for old components and genuinely new developments. Unverified is not fresh.
    Before using a clinical/earnings claim, read the primary document via `document <url>`
    or `primary <ticker> --science`; use `trials --nct <id>` and `papers "candidate OR alias"`
@@ -59,12 +60,12 @@ async def check(body: str) -> str:
         model=MODEL,
         cwd=ROOT,
         setting_sources=["project"],
-        allowed_tools=["Read", "Glob", "Grep", "WebSearch", "WebFetch",
-                       "Bash(uv run python scripts/hf_tool.py:*)"],
+        allowed_tools=agent.ALLOWED_TOOLS,
+        disallowed_tools=agent.DISALLOWED_TOOLS,
         permission_mode="default",
         max_turns=15,
         max_budget_usd=0.5,
-        env={"CLAUDE_CONFIG_DIR": str(ROOT / ".claude-brief")},
+        env=agent.ENV,
     )
     result = None
     async for message in query(prompt=PROMPT.format(today=date.today().isoformat(), body=body),
@@ -99,7 +100,7 @@ async def main() -> None:
         subprocess.run(["git", "add", *changed], cwd=ROOT, check=True)
         subprocess.run(["git", "commit", "-q", "-m", f"watch: {', '.join(Path(c).stem for c in changed)}"],
                        cwd=ROOT, check=True)
-        subprocess.run(["git", "push", "-q"], cwd=ROOT, check=True)
+        agent.push()
 
 
 if __name__ == "__main__":
