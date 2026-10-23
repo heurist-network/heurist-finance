@@ -1,0 +1,8 @@
+{
+  "NVDA": {"cik": "1045810", "feeds": ["https://nvidianews.nvidia.com/releases.xml"], "pages": ["https://investor.nvidia.com/financial-info/financial-reports/default.aspx"]},
+  "MRNA": {"cik": "1682852", "pages": ["https://investors.modernatx.com/quarterly-results"], "candidates": ["mRNA-1403", "intismeran autogene", "mRNA-4157"]},
+  "CRSP": {"cik": "1674416", "pages": ["https://ir.crisprtx.com/news-releases"], "candidates": ["CTX310", "exagamglogene autotemcel", "CASGEVY"], "regulatory": ["https://www.fda.gov/vaccines-blood-biologics/casgevy"]},
+  "RXRX": {"cik": "1601830", "pages": ["https://recursion.com/news"], "candidates": ["REC-4881", "REC4881"], "documents": ["https://recursion.com/news/full-transcript-of-recursions-second-quarter-2026-earnings-call"]},
+  "ABNB": {"cik": "1559720", "pages": ["https://investors.airbnb.com/financials/default.aspx"]},
+  "DUOL": {"cik": "1562088", "pages": ["https://investors.duolingo.com/quarterly-results"]}
+}

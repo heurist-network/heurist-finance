@@ -1,6 +1,11 @@
-node_modules/
-
-# Telemetry data (never commit)
-telemetry-server/data/
-pnpm-lock.yaml
-.mcp.json
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+logs/
+.claude-brief/

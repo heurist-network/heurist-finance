@@ -1,249 +1,147 @@
-<h1 align="center">Heurist Finance</h1>
+# Heurist Finance
 
-<p align="center">
-  <strong>The view that matters.</strong><br>
-  Agent-native financial research for your terminal.
-</p>
+Investment research with AI agents, kept in a git repo. Open it in Claude Code, Codex or
+Cursor and ask a market question. The agent pulls prices, options, SEC filings, FRED series
+and the web through [Heurist Mesh](https://heurist.ai), and answers with a call, the evidence
+behind it and what would prove it wrong. When you decide to trade, it writes a plan with price
+levels, and a monitor messages you on Telegram when a level is crossed.
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Node.js-18%2B-brightgreen" alt="Node.js 18+" />
-  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License" />
-  <img src="https://img.shields.io/badge/version-0.10.4-C0FF00" alt="v0.10.4" />
-</p>
+For a hosted version, [finance.heurist.ai](https://finance.heurist.ai) is an AI financial
+workbench where you read the market feed and research with AI in the browser.
 
-<p align="center">
-  <a href="https://misc-files.heurist.xyz/split-demo.mp4">
-    <img src="docs/screenshots/demo.gif" width="720" alt="Heurist Finance product demo" />
-  </a>
-</p>
+## Quick start
 
-<p align="center">
-  <strong><a href="https://misc-files.heurist.xyz/split-demo.mp4">Watch the product demo</a></strong>
-</p>
+You need Python 3.11+, [uv](https://docs.astral.sh/uv/) and a coding agent.
 
+```bash
+git clone https://github.com/heurist-network/heurist-finance
+cd heurist-finance
+cp .env.example .env        # add HEURIST_API_KEY and EODHD_API_KEY
+uv sync
+uv run python scripts/hf_tool.py quote NVDA QQQ
+claude                      # or codex, cursor
+```
+
+Get a Heurist API key at [heurist.ai/credits](https://heurist.ai/credits), or with a referral
+code at [dev-api-form.heurist.ai](https://dev-api-form.heurist.ai/). The EODHD key
+([eodhd.com](https://eodhd.com)) covers daily bars and quotes.
+
+Then talk to the agent:
+
+```
+Interview me and fill in profile.md.
+use research skill: are semiconductor earnings revisions still rising?
+use trading skill: plan an entry in AMD after its earnings.
+use audit skill: <paste a thread or article>
+```
+
+Your profile, plans and fills end up in this repo. Keep your copy in a private repository
+rather than a public fork.
+
+## Skills
+
+The skills are in `.claude/skills/` (linked from `.agents/skills/` for other agents). The agent
+picks one from the question, or you name it with the phrase in the second column. All of them
+follow [`_shared/analyst-core.md`](.claude/skills/_shared/analyst-core.md): every number comes
+from a tool call, the agent estimates before it reads consensus, and each answer ends with a
+call, a falsifier and a horizon.
+
+| Skill | Phrase | Use for |
+|---|---|---|
+| [hf-research](.claude/skills/hf-research/SKILL.md) | `use research skill` | Parallel research across prices, filings, macro and the web, then a skeptic pass |
+| [trading-plan](.claude/skills/trading-plan/SKILL.md) | `use trading skill` | A written plan: scenarios, size, invalidation list, monitor levels |
+| [earnings-preview](.claude/skills/earnings-preview/SKILL.md) | `use earnings-preview skill` | Research lanes, bull/bear debate, fact-check and a verdict committed before the print |
+| [earnings-play](.claude/skills/earnings-play/SKILL.md) | `use earnings skill` | Implied vs realized move, vol crush, post-earnings drift |
+| [entry-exit-timing](.claude/skills/entry-exit-timing/SKILL.md) | `use timing skill` | Limit-price ladders and stops from trend regime and σ bands |
+| [position-sizing](.claude/skills/position-sizing/SKILL.md) | `use sizing skill` | Fractional Kelly, volatility targeting, portfolio heat |
+| [portfolio-review](.claude/skills/portfolio-review/SKILL.md) | `use portfolio skill` | Correlated clusters, concentration, stress losses in dollars |
+| [market-health](.claude/skills/market-health/SKILL.md) | `use market skill` | Breadth, distribution days, volatility and credit, ending in an exposure gate |
+| [macro-regime](.claude/skills/macro-regime/SKILL.md) | `use macro skill` | Curve, credit, dollar and inflation turned into positions |
+| [sector-rotation](.claude/skills/sector-rotation/SKILL.md) | `use sector skill` | Sector relative strength and rate sensitivity |
+| [valuation-expectations](.claude/skills/valuation-expectations/SKILL.md) | `use valuation skill` | What the price already implies, against base rates |
+| [fundamental-forensics](.claude/skills/fundamental-forensics/SKILL.md) | `use forensics skill` | Accruals, cash vs earnings, restatement red flags |
+| [thesis-audit](.claude/skills/thesis-audit/SKILL.md) | `use audit skill` | Fact-checks someone else's thesis claim by claim |
+| [options-strategist](.claude/skills/options-strategist/SKILL.md) | `use options skill` | Strikes, expiry and management rules for a view |
+| [momentum-trend](.claude/skills/momentum-trend/SKILL.md) | `use momentum skill` | Momentum and trend, with crash risk |
+| [technical-evidence](.claude/skills/technical-evidence/SKILL.md) | `use technicals skill` | Chart signals ranked by statistical support |
+| [sentiment-positioning](.claude/skills/sentiment-positioning/SKILL.md) | `use sentiment skill` | Crowding, insider clusters, contrarian signals |
+| [event-driven](.claude/skills/event-driven/SKILL.md) | `use event skill` | M&A arb, spinoffs, index changes, lockups, activists |
+| [short-thesis](.claude/skills/short-thesis/SKILL.md) | `use short skill` | Short cases with catalyst and squeeze checks |
+| [small-cap-scout](.claude/skills/small-cap-scout/SKILL.md) | `use smallcap skill` | Liquidity, spread cost, pump and dilution checks |
+| [stock-screener](.claude/skills/stock-screener/SKILL.md) | `use screener skill` | Screens built around a named mispricing |
+| [pairs-relative-value](.claude/skills/pairs-relative-value/SKILL.md) | `use pairs skill` | Cointegration, half-life, entry bands |
+| [dividend-income](.claude/skills/dividend-income/SKILL.md) | `use dividend skill` | Yield traps and payout coverage |
+| [commodity-curve](.claude/skills/commodity-curve/SKILL.md) | `use commodity skill` | Futures curve, roll yield, COT positioning |
+| [bond-data](.claude/skills/bond-data/SKILL.md) | `use bond skill` | Corporate bond terms, TRACE prices, spreads |
+| [trade-postmortem](.claude/skills/trade-postmortem/SKILL.md) | `use postmortem skill` | Grades closed trades on process, not P&L |
+
+## Market data CLI
+
+Agents and subagents fetch data through one command that prints JSON:
+
+```bash
+uv run python scripts/hf_tool.py quote NVDA MU
+uv run python scripts/hf_tool.py prices QQQ --period 5y --out px.json
+uv run python scripts/hf_tool.py options NVDA --expiry 2026-12-18
+uv run python scripts/hf_tool.py fred BAMLH0A0HYM2 T10Y3M
+uv run python scripts/hf_tool.py primary NVDA
+uv run python scripts/hf_tool.py trials --nct NCT05552755
+uv run python scripts/hf_tool.py describe sec xbrl_fact_trends
+uv run python scripts/hf_tool.py call sec insider_activity query=NVDA
+```
+
+`tools` lists every Mesh tool (`yahoo`, `fred`, `sec`, `exa`) and `describe` shows a tool's
+parameters. `primary`, `document`, `trials` and `papers` save each retrieved document under
+`logs/primary-sources/` so you can see what changed between reads.
+
+## Plans and alerts
+
+A plan is a Markdown file in `trading/plans/` with its levels in the frontmatter:
+
+```yaml
 ---
-
-You already use an AI agent for code. Now it does the research too.
-
-Ask about any stock, sector, or macro regime. Get a conviction note -
-thesis, evidence, falsifiers, verdict. The agent gathers the evidence.
-You make the call.
-
-## Quick Start
-
-**Requirements:** Node.js 18+
-
-```bash
-npx @heurist-network/skills add heurist-finance
-```
-
-or specify an agent
-```bash
-npx @heurist-network/skills add heurist-finance -y -a <agent-name>
-```
-
-or tell your agent to
-```
-Install the skill from https://github.com/heurist-network/heurist-finance and set it up
-```
-
-After installing the skill, open two panes - agent on one side, terminal on the other:
-
-```bash
-# Pane 1: the terminal
-hf
-
-# Pane 2: your agent
-/heurist-finance set up heurist finance with API key = ...
-```
-
-The terminal lights up the moment the agent starts fetching. Panels build as data arrives.
-
-### Get API key
-- Option 1: Visit https://heurist.ai/credits
-- Option 2: Let your agent help you claim free credits
-- Option 3: If you have a referral code, visit https://dev-api-form.heurist.ai/
-
-## The Desk
-
-Every seat takes a position.
-
-| Command | Analyst | What they do |
-|---------|---------|-------------|
-| `/analyst` | Senior Equity Analyst | Deep-dives, SEC filings, and the view that matters |
-| `/compare` | Portfolio Manager | Side-by-side conviction. 2-5 names, one winner |
-| `/macro` | Chief Macro Strategist | Rates, inflation, growth - the regime behind the trade |
-| `/sector` | Sector Head | Rotations, thematics, and the names moving money |
-| `/desk` | Trading Desk | Market pulse. Everything that matters, fast |
-| `/risk` | Risk Analyst | Event impact. Catalyst timing. What could go wrong |
-| `/options` | Options Strategist | Chains, OI skew, positioning - where smart money leans |
-| `/futures` | Commodities Strategist | Futures, commodities, rates - the cross-asset tape |
-| `/watch` | Watchlist Monitor | Your names. Tracked. Alerted. Conviction logged |
-| `/portfolio` | Portfolio Dashboard | Your holdings, allocation, and concentration risk |
-
-### Portfolio
-
-Connect your brokerage and see your real positions alongside research.
-
-Supported brokers:
-- **IBKR** (Interactive Brokers) — Flex Query Web Service, token + query ID, end-of-day data
-- **Moomoo** (OpenD) — auto-detects the desktop app or installs OpenD, real-time positions
-
-```bash
-hf-portfolio connect ibkr <TOKEN> <QUERY_ID>
-hf-portfolio connect moomoo
-hf-portfolio status
-```
-
-All credentials stay on your machine at `~/.heurist/auth/`. Read-only. No orders.
-
-Most AI finance tools hedge everything. *"The stock may be experiencing
-some downward pressure."* This desk doesn't do that. It says *"falling knife
-at RSI 38, wait for $120"* - and if you push back, it defends the call or
-updates it with the new evidence.
-
-## What It Feels Like
-
-You type `NVDA`.
-
-The terminal lights up - quote appears first, chart follows, panels keep
-growing. By the time you've read the technicals, the SEC filings are in.
-Full tearsheet with insider activity, macro overlay, and analyst consensus.
-
-The verdict: *"Falling knife at RSI 38. Wait for $120."*
-
-Not a summary. A position - with the levels, the catalysts, and the specific
-conditions that would flip the thesis. Every panel shows its source. Every
-number is traceable. If the data contradicts the thesis, the desk says so.
-
-Then: *"Insiders sold $58M last quarter. Want the timeline?"*
-
-You drill in. The desk stays in character. It remembers your last session's
-conviction and flags when the view has changed.
-
-<p align="center">
-  <img src="docs/screenshots/NVDA.png" width="720" alt="NVDA deep-dive dashboard" />
-</p>
-
-## Terminal Operations
-
-```bash
-hf
-```
-
-User will navigate the terminal:
-
-| Key | Action |
-|-----|--------|
-| `j`/`k` or up/down | Scroll |
-| `PgUp`/`PgDn` | Page jump |
-| `g`/`G` | Top / bottom |
-| `Tab` | Next panel |
-| `?` | Help overlay |
-| `q` | Return to splash / quit |
-
-## Response
-
-Reply to user queries `/heurist-finance NVDA` with research inline:
-
-```
-**[BEAR]** - `months` - 2026-03-24
-
-*Prior (Mar 15): bull at $168 - conviction changed*
-
-> Forward P/E of 38x prices in perfection while insiders sold $58M in Q4.
-> Blackwell ramp is priced in. The next surprise is negative.
-
-**CATALYSTS**
-- Q4 datacenter revenue print (Jan 28)
-- PCE August 29 - if sticky, compresses the multiple further
-- China export control escalation - $8B TAM at risk
-
-**RISKS**
-- Blackwell production delays
-- Hyperscaler capex pullback signals
-- Sustained PCE above 2.5% forces Fed higher-for-longer
-
-**LEVELS**
-Support $145 - Resistance $197 - Target $160
-
-**INVALIDATION**
-Above $197 on volume invalidates the bear case.
-
+ticker: QQQ
+status: active
+levels:
+  - {id: add-1, when: "price <= 450", action: "buy 30% of target"}
+  - {id: stop, when: "close < sma200", action: "exit all on a Friday close"}
+  - {id: vix, ticker: "^VIX", when: "close > 30", action: "add the reserve"}
+events:
+  - {date: 2030-01-15, what: "CPI release"}
 ---
-
-*claude-sonnet-4-6 - 12 tools - ~$0.08*
 ```
 
-Same data, same analysts, same conviction - whether you're in the terminal or reading markdown. The terminal adds progressive rendering and the Bloomberg feel. You also give the thesis right in your conversation.
+Three scripts run from cron on any always-on machine:
 
-## Why This Exists
+- `scripts/monitor.py` checks every active plan, sends the alert and commits the fired level.
+- `scripts/watch.py` hands each file in `trading/watches/` to a Claude agent, for conditions
+  that need reading rather than a price, such as "the 8-K with the merger vote date is out".
+- `scripts/brief.py preopen|postclose` sends a short brief on what touched your positions and
+  writes its notes to `context/`, which every new agent session reads first.
 
-Right now, your pre-trade research looks like this: TradingView for the chart,
-Seeking Alpha for the thesis, ChatGPT for a quick read on the quarter, SEC.gov
-for the filing you probably won't finish. Four tabs, no integration, no memory.
+The watch and brief agents need `ANTHROPIC_API_KEY`. Without a Telegram bot token, alerts print
+to stdout. [AGENTS.md](AGENTS.md) has the full plan format and an example crontab.
 
-That ritual is the problem. Heurist Finance collapses it into one command.
-
-The agent pulls real-time data across equities, macro, filings, and news -
-in parallel. It normalizes the data, renders it into an inspectable research
-artifact, and forms a thesis with explicit assumptions and falsifiers. You
-still make the call. The desk just makes sure you're making it with
-everything on the table.
-
-Bloomberg costs $32K/year and doesn't talk to your agent. This runs locally
-and lives inside your agent stack.
-
-## How It Works
+## Layout
 
 ```
-  ┌───────────────────┐         ┌─────────────────────────────────────────────┐
-  │       Agent       │         │            Heurist Mesh (MCP)               │
-  │                   │         │                                             │
-  │  Claude Code      │  query  │   ┌──────────┐  ┌──────────┐  ┌──────────┐  │
-  │  Codex CLI   ─────┼────────▶│   │  Yahoo   │  │   FRED   │  │   SEC    │  │
-  │  OpenCode         │         │   │ Finance  │  │  Macro   │  │  EDGAR   │  │
-  │                   │◀────────┤   └────┬─────┘  └────┬─────┘  └────┬─────┘  │
-  └───────────────────┘ verdict │        │             │             │        │
-                                │   ┌────┴─────────────┴─────────────┴────┐   │
-                                │   │         28 tools in parallel        │   │
-                                │   └─────────────────────────────────────┘   │
-                                │                                             │
-                                │   ┌──────────┐                              │
-                                │   │   Exa    │                              │
-                                │   │  Search  │                              │
-                                │   └──────────┘                              │
-                                └─────────────────────────────────────────────┘
+profile.md              you: constraints, stance, lessons from past trades
+trading/plans/          one plan per file
+trading/portfolio.md    holdings and cash
+trading/trades.md       one row per fill, tied to a plan level or `unplanned`
+trading/watches/        conditions checked by an agent
+research/               notes, one topic per file
+messages/               daily briefs
+context/                the brief's notes for the next session
+.claude/skills/         skills
+scripts/, src/          CLI, monitor, watch, brief
 ```
 
-Heurist Finance is an **agent skill**. One install, any agent. It connects your
-agent to [Heurist Mesh](https://mesh.heurist.ai) - a marketplace of skills and tools
-that handle the data plumbing.
+## Upgrading from 0.x
 
-| Layer | What it does |
-|-------|-------------|
-| **Prompt architecture** | 8 SKILL.md files route queries, enforce density contracts, anchor analyst voice |
-| **Schema coercion** | Normalizes messy agent output at the render boundary - any model works |
-| **Visualization engine** | Agent composes layouts freely - panels, rows, stacks, tables, gauges |
-| **Progressive rendering** | Patch-based streaming - panels build as data arrives, not all at once |
-
-**Data sources**
-
-| Source | Coverage |
-|--------|----------|
-| **Yahoo Finance** | Quotes, price history, technicals, analyst consensus, fundamentals, news |
-| **FRED** | CPI, PCE, Fed Funds, GDP, unemployment, macro regime context |
-| **SEC EDGAR** | Filings, XBRL financials, insider activity, institutional holders, activist watch |
-| **Exa Search** | Web search with LLM digest, URL scraping for deep context |
-
-## Community
-
-Built by [Heurist AI](https://heurist.ai) as a [Heurist Mesh](https://mesh.heurist.ai) marketplace skill.
-
-- Issues and feedback: [GitHub Issues](https://github.com/heurist-network/heurist-finance/issues)
-- Heurist community: [Discord](https://discord.gg/heuristai)
-- Follow us on X: [X/Twitter](x.com/heurist_ai)
+Up to 0.10.4 this repo was a Node terminal app (`hf`) with broker connectors. That code is in
+the git history at commit `1c77563`.
 
 ## License
 
-MIT - see [LICENSE](LICENSE).
+MIT
